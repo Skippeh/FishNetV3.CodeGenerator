@@ -1,7 +1,6 @@
 ﻿using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.CodeGenerating.Processing;
-using FishNet.Configuring;
 using FishNet.Managing.Logging;
 using FishNet.Object;
 using FishNet.Object.Delegating;
