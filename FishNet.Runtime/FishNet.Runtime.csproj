@@ -11,6 +11,7 @@
       https://nuget.bepinex.dev/v3/index.json;
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
+    <NoWarn>0649</NoWarn>
   </PropertyGroup>
   
   <ItemGroup>
