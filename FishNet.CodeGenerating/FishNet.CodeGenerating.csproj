@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FishNet.Runtime\FishNet.Runtime.csproj" />
+    <ProjectReference Include="..\Unity.CompilationPipeline.Common\Unity.CompilationPipeline.Common.csproj" />
   </ItemGroup>
 
 </Project>

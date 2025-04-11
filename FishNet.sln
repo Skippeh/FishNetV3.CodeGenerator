@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FishNet.CodeGenerating", "F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameKit.Dependencies", "GameKit.Dependencies\GameKit.Dependencies.csproj", "{8C1776DC-30AD-43AF-B132-0BAEBF809E01}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity.CompilationPipeline.Common", "Unity.CompilationPipeline.Common\Unity.CompilationPipeline.Common.csproj", "{52A7904B-536F-476F-8A47-6B20C24B25B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{8C1776DC-30AD-43AF-B132-0BAEBF809E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C1776DC-30AD-43AF-B132-0BAEBF809E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C1776DC-30AD-43AF-B132-0BAEBF809E01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52A7904B-536F-476F-8A47-6B20C24B25B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52A7904B-536F-476F-8A47-6B20C24B25B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52A7904B-536F-476F-8A47-6B20C24B25B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52A7904B-536F-476F-8A47-6B20C24B25B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
