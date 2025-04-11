@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>FishNet</AssemblyName>
+    <RootNamespace>FishNet</RootNamespace>
+    <RestoreAdditionalProjectSources>
+      $(RestoreAdditionalProjectSources);
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="FishNet.CodeGenerating" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="FishNet.CodeAnalysis">
+      <HintPath>Plugins\CodeAnalysis\FishNet.CodeAnalysis.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.32" IncludeAssets="compile" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\GameKit.Dependencies\GameKit.Dependencies.csproj" />
+  </ItemGroup>
+
+</Project>
