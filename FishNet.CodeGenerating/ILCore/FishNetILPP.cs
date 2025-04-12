@@ -180,6 +180,8 @@ namespace FishNet.CodeGenerating.ILCore
 
         private static IEnumerable<TypeDefinition> GetAllModuleTypesAndReferencedTypes(CodegenSession session)
         {
+            // todo: cache types? there's probably quite a lot...
+            
             foreach (var type in session.Module.Types)
                 yield return type;
 
