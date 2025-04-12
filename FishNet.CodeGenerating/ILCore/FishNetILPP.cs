@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Mono.Collections.Generic;
 using Unity.CompilationPipeline.Common.ILPostProcessing;
 
 namespace FishNet.CodeGenerating.ILCore
@@ -164,7 +165,7 @@ namespace FishNet.CodeGenerating.ILCore
         {
             bool modified = false;
 
-            List<TypeDefinition> allTypeDefs = session.Module.Types.ToList();
+            List<TypeDefinition> allTypeDefs = GetAllModuleTypesAndReferencedTypes(session).ToList();
             foreach (TypeDefinition td in allTypeDefs)
             {
                 if (session.GetClass<GeneralHelper>().HasExcludeSerializationAttribute(td))
@@ -175,6 +176,20 @@ namespace FishNet.CodeGenerating.ILCore
             }
 
             return modified;
+        }
+
+        private static IEnumerable<TypeDefinition> GetAllModuleTypesAndReferencedTypes(CodegenSession session)
+        {
+            foreach (var type in session.Module.Types)
+                yield return type;
+
+            foreach (var assemblyName in session.Module.AssemblyReferences)
+            {
+                var assemblyDef = session.Module.AssemblyResolver.Resolve(assemblyName);
+
+                foreach (var type in assemblyDef.MainModule.Types)
+                    yield return type;
+            }
         }
 
         /// <summary>
@@ -227,7 +242,7 @@ namespace FishNet.CodeGenerating.ILCore
 
             string networkBehaviourFullName = session.GetClass<NetworkBehaviourHelper>().FullName;
             HashSet<TypeDefinition> typeDefs = new HashSet<TypeDefinition>();
-            foreach (TypeDefinition td in session.Module.Types)
+            foreach (TypeDefinition td in GetAllModuleTypesAndReferencedTypes(session))
             {
                 TypeDefinition climbTd = td;
                 do
