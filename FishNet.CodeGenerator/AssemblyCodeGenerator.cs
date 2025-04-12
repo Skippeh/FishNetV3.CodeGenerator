@@ -13,13 +13,13 @@ namespace FishNet.CodeGenerator
 {
     public static class AssemblyCodeGenerator
     {
-        private static bool ResolverInitialized;
+        private static bool AssemblyResolvedInitialized;
         
-        public static ILPostProcessResult? ProcessFile(string assemblyPath, string outputPath, ICollection<string> assemblySearchPaths)
+        public static ILPostProcessResult? ProcessFile(string assemblyPath, string outputPath, ProcessOptions options)
         {
             var compiledAssembly = ReadCompiledAssembly(assemblyPath);
             var processor = new FishNetILPP();
-            processor.AssemblySearchPaths.AddRange(assemblySearchPaths.Select(path => PathRelativeToAssemblyPath(assemblyPath, path)));
+            processor.AssemblySearchPaths.AddRange(options.AssemblySearchPaths.Select(path => PathRelativeToAssemblyPath(assemblyPath, path)));
             
             string[] extraSearchPaths = AppDomain.CurrentDomain.GetAssemblies()
                 .Select(x => x.Location)
@@ -34,11 +34,14 @@ namespace FishNet.CodeGenerator
             if (!processor.AssemblySearchPaths.Contains(assemblyPathDir))
                 processor.AssemblySearchPaths.Add(assemblyPathDir);
             
-            if (!ResolverInitialized)
+            if (!AssemblyResolvedInitialized)
             {
-                ResolverInitialized = true;
-                GeneratorAssemblyResolver.Initialize(processor.AssemblySearchPaths.ToList());
+                AssemblyResolvedInitialized = true;
+                GeneratorAssemblyResolver.Initialize();
             }
+
+            options = options with { AssemblySearchPaths = processor.AssemblySearchPaths };
+            GeneratorAssemblyResolver.SetProcessOptions(options);
 
             if (processor.WillProcess(compiledAssembly))
             {

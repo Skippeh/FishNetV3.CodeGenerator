@@ -16,8 +16,9 @@ public static class Program
 
         [Option('o', "output", Required = false, HelpText = "Output dll file")]
         public string? OutputFile { get; set; }
-        
-        [Option('a', "assemblySearchPaths", Required = false, HelpText = "Extra search paths for assemblies. Can be absolute or relative to input file")]
+
+        [Option('a', "assemblySearchPaths", Required = false,
+            HelpText = "Extra search paths for assemblies. Can be absolute or relative to input file")]
         public ICollection<string> AssemblySearchPaths { get; set; } = null!;
     }
 
@@ -27,7 +28,7 @@ public static class Program
 
         if (parser.Errors.Any())
             return -1;
-        
+
         return MainWithLaunchArgs(parser.Value);
     }
 
@@ -38,7 +39,10 @@ public static class Program
             args.OutputFile = args.InputFile;
         }
 
-        var result = AssemblyCodeGenerator.ProcessFile(args.InputFile, args.OutputFile, args.AssemblySearchPaths);
+        var result = AssemblyCodeGenerator.ProcessFile(args.InputFile, args.OutputFile, new ProcessOptions
+        {
+            AssemblySearchPaths = args.AssemblySearchPaths
+        });
 
         if (result == null)
         {
@@ -46,11 +50,18 @@ public static class Program
             return (int)ProcessResult.UnknownError;
         }
 
-        if (result.Diagnostics.Any(d => d.DiagnosticType == DiagnosticType.Error))
+        if (result.Diagnostics.All(d => d.DiagnosticType != DiagnosticType.Error))
+            return (int)ProcessResult.Ok;
+
+        foreach (var diagnostic in result.Diagnostics)
         {
-            return (int)ProcessResult.HasDiagnosticErrors;
+            if (diagnostic.DiagnosticType == DiagnosticType.Error)
+            {
+                Console.Error.WriteLine(
+                    $"[{diagnostic.DiagnosticType}] {diagnostic.File}:{diagnostic.Line}:{diagnostic.Column}: {diagnostic.MessageData}");
+            }
         }
 
-        return (int)ProcessResult.Ok;
+        return (int)ProcessResult.HasDiagnosticErrors;
     }
 }
