@@ -1,8 +1,7 @@
 ﻿using FishNet.Broadcast;
-using FishNet.CodeGenerating;
 using FishNet.Serializing;
 using FishNet.Utility.Performance;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System.Collections.Generic;
 
 namespace FishNet.Managing.Server
@@ -13,21 +12,19 @@ namespace FishNet.Managing.Server
         public int Id;
     }
 
-    [UseGlobalCustomSerializer]
     public struct ConnectedClientsBroadcast : IBroadcast
     {
         public List<int> Values;
     }
 
-    
     internal static class ConnectedClientsBroadcastSerializers
     {
-        public static void WriteConnectedClientsBroadcast(this Writer writer, ConnectedClientsBroadcast value)
+        public static void WriteConnectedClientsBroadcast(this PooledWriter writer, ConnectedClientsBroadcast value)
         {
             writer.WriteList(value.Values);
         }
 
-        public static ConnectedClientsBroadcast ReadConnectedClientsBroadcast(this Reader reader)
+        public static ConnectedClientsBroadcast ReadConnectedClientsBroadcast(this PooledReader reader)
         {
             List<int> cache = CollectionCaches<int>.RetrieveList();
             reader.ReadList(ref cache);

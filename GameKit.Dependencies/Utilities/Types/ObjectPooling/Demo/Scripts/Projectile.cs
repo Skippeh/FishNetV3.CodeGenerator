@@ -3,7 +3,7 @@ using UnityEditor;
 #endif
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.ObjectPooling.Examples
+namespace GameKit.Utilities.ObjectPooling.Examples
 {
 
     public class Projectile : MonoBehaviour

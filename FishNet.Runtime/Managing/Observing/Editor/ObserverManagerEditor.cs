@@ -1,7 +1,7 @@
 ﻿#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
-using GameKitEditing = GameKit.Dependencies.Utilities.Editing;
+using GameKitEditing = GameKit.Utilities.Editing;
 
 namespace FishNet.Managing.Observing.Editing
 {
@@ -32,9 +32,6 @@ namespace FishNet.Managing.Observing.Editing
             EditorGUILayout.ObjectField("Script:", MonoScript.FromMonoBehaviour((ObserverManager)target), typeof(ObserverManager), false);
             GUI.enabled = true;
 
-            EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
-
             GameKitEditing.DisableGUIIfPlaying();
             EditorGUILayout.PropertyField(_enableNetworkLod);
             if (_enableNetworkLod.boolValue)
@@ -48,7 +45,7 @@ namespace FishNet.Managing.Observing.Editing
             EditorGUILayout.PropertyField(_updateHostVisibility);
             EditorGUILayout.PropertyField(_defaultConditions);
 
-            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
 
             serializedObject.ApplyModifiedProperties();
         }

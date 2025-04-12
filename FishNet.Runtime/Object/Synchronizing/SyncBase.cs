@@ -1,24 +1,26 @@
-﻿using FishNet.CodeGenerating;
+﻿#if FISHNET_RELEASE_MODE
 using FishNet.Managing;
 using FishNet.Managing.Timing;
 using FishNet.Serializing;
 using FishNet.Transporting;
+using System;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace FishNet.Object.Synchronizing.Internal
 {
-    public class SyncBase
+    public class SyncBase : ISyncType
     {
+
         #region Public.
         /// <summary>
-        /// True if this SyncBase has been initialized on its NetworkBehaviour.
-        /// Being true does not mean that the NetworkBehaviour has been initialized on the network, but rather that this SyncBase has been configured with the basics to be networked.
+        /// True if this SyncBase has been registered within it's containing class.
         /// </summary>
-        public bool IsInitialized { get; private set; }
+        public bool IsRegistered { get; private set; }
         /// <summary>
         /// True if the object for which this SyncType is for has been initialized for the network.
         /// </summary>
-        public bool IsNetworkInitialized => (IsInitialized && (NetworkBehaviour.IsServerStarted || NetworkBehaviour.IsClientStarted));
+        public bool IsNetworkInitialized => (IsRegistered && (NetworkBehaviour.IsServer || NetworkBehaviour.IsClient));
         /// <summary>
         /// True if a SyncObject, false if a SyncVar.
         /// </summary>
@@ -26,27 +28,23 @@ namespace FishNet.Object.Synchronizing.Internal
         /// <summary>
         /// The settings for this SyncVar.
         /// </summary>
-        [MakePublic]
-        internal SyncTypeSettings Settings;
+        public Settings Settings = new Settings();
         /// <summary>
         /// How often updates may send.
         /// </summary>
-        [MakePublic]
-        internal float SendRate => Settings.SendRate;
+        public float SendRate => Settings.SendRate;
         /// <summary>
         /// True if this SyncVar needs to send data.
-        /// </summary>        
+        /// </summary>
         public bool IsDirty { get; private set; }
         /// <summary>
         /// NetworkManager this uses.
         /// </summary>
-        [MakePublic]
-        internal NetworkManager NetworkManager = null;
+        public NetworkManager NetworkManager = null;
         /// <summary>
         /// NetworkBehaviour this SyncVar belongs to.
         /// </summary>
-        [MakePublic]
-        internal NetworkBehaviour NetworkBehaviour = null;
+        public NetworkBehaviour NetworkBehaviour = null;
         /// <summary>
         /// True if the server side has initialized this SyncType.
         /// </summary>
@@ -59,8 +57,7 @@ namespace FishNet.Object.Synchronizing.Internal
         /// Next time this SyncType may send data.
         /// This is also the next time a client may send to the server when using client-authoritative SyncTypes.
         /// </summary>
-        [MakePublic]
-        internal uint NextSyncTick = 0;
+        public uint NextSyncTick = 0;
         /// <summary>
         /// Index within the sync collection.
         /// </summary>
@@ -69,11 +66,304 @@ namespace FishNet.Object.Synchronizing.Internal
         /// Channel to send on.
         /// </summary>
         internal Channel Channel => _currentChannel;
+        #endregion
+
+        #region Private.
         /// <summary>
-        /// Sets a new currentChannel.
+        /// Sync interval converted to ticks.
         /// </summary>
-        /// <param name="channel"></param>
-        internal void SetCurrentChannel(Channel channel) => _currentChannel = channel;
+        private uint _timeToTicks;
+        /// <summary>
+        /// Channel to use for next write. To ensure eventual consistency this eventually changes to reliable when Settings are unreliable.
+        /// </summary>
+        private Channel _currentChannel;
+        #endregion
+
+        /// <summary>
+        /// Initializes this SyncBase.
+        /// </summary>
+        public void InitializeInstance(NetworkBehaviour nb, uint syncIndex, WritePermission writePermissions, ReadPermission readPermissions, float tickRate, Channel channel, bool isSyncObject)
+        {
+            NetworkBehaviour = nb;
+            SyncIndex = syncIndex;
+            _currentChannel = channel;
+            IsSyncObject = isSyncObject;
+            Settings = new Settings()
+            {
+                WritePermission = writePermissions,
+                ReadPermission = readPermissions,
+                SendRate = tickRate,
+                Channel = channel
+            };
+
+            NetworkBehaviour.RegisterSyncType(this, SyncIndex);
+        }
+
+        /// <summary>
+        /// Sets the SyncIndex.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetRegistered()
+        {
+            Registered();
+        }
+
+        /// <summary>
+        /// Called when the SyncType has been registered, but not yet initialized over the network.
+        /// </summary>
+        protected virtual void Registered()
+        {
+            IsRegistered = true;
+        }
+
+        /// <summary>
+        /// PreInitializes this for use with the network.
+        /// </summary>
+        public void PreInitialize(NetworkManager networkManager)
+        {
+            NetworkManager = networkManager;
+            if (Settings.SendRate < 0f)
+                Settings.SendRate = networkManager.ServerManager.GetSynctypeRate();
+
+            _timeToTicks = NetworkManager.TimeManager.TimeToTicks(Settings.SendRate, TickRounding.RoundUp);
+        }
+
+        /// <summary>
+        /// Called after OnStartXXXX has occurred for the NetworkBehaviour.
+        /// </summary>
+        /// <param name="asServer">True if OnStartServer was called, false if OnStartClient.</param>
+        public virtual void OnStartCallback(bool asServer)
+        {
+            if (asServer)
+                OnStartServerCalled = true;
+            else
+                OnStartClientCalled = true;
+        }
+        /// <summary>
+        /// Called before OnStopXXXX has occurred for the NetworkBehaviour.
+        /// </summary>
+        /// <param name="asServer">True if OnStopServer was called, false if OnStopClient.</param>
+        public virtual void OnStopCallback(bool asServer)
+        {
+            if (asServer)
+                OnStartServerCalled = false;
+            else
+                OnStartClientCalled = false;
+        }
+
+        protected bool CanNetworkSetValues(bool warn = true)
+        {
+            /* If not registered then values can be set
+             * since at this point the object is still being initialized
+             * in awake so we want those values to be applied. */
+            if (!IsRegistered)
+                return true;
+            /* If the network is not initialized yet then let
+             * values be set. Values set here will not synchronize
+             * to the network. We are assuming the user is setting
+             * these values on client and server appropriately
+             * since they are being applied prior to this object
+             * being networked. */
+            if (!IsNetworkInitialized)
+                return true;
+            //If server is active then values can be set no matter what.
+            if (NetworkBehaviour.IsServer)
+                return true;
+            //Predicted spawning is enabled.
+            if (NetworkManager != null && NetworkManager.PredictionManager.GetAllowPredictedSpawning() && NetworkBehaviour.NetworkObject.AllowPredictedSpawning)
+                return true;
+            /* If here then server is not active and additional
+             * checks must be performed. */
+            bool result = (Settings.WritePermission == WritePermission.ClientUnsynchronized) || (Settings.ReadPermission == ReadPermission.ExcludeOwner && NetworkBehaviour.IsOwner);
+            if (!result && warn)
+                LogServerNotActiveWarning();
+
+            return result;
+        }
+
+        /// <summary>
+        /// Logs that the operation could not be completed because the server is not active.
+        /// </summary>
+        protected void LogServerNotActiveWarning()
+        {
+            if (NetworkManager != null)
+                NetworkManager.LogWarning($"Cannot complete operation as server when server is not active. You can disable this warning by setting WritePermissions to {WritePermission.ClientUnsynchronized.ToString()}.");
+        }
+
+        /// <summary>
+        /// Dirties this Sync and the NetworkBehaviour.
+        /// </summary>
+        public bool Dirty()
+        {
+            /* Reset channel even if already dirty.
+             * This is because the value might have changed
+             * which will reset the eventual consistency state. */
+            _currentChannel = Settings.Channel;
+
+            /* Once dirty don't undirty until it's
+             * processed. This ensures that data
+             * is flushed. */
+            bool canDirty = NetworkBehaviour.DirtySyncType(IsSyncObject);
+            IsDirty |= canDirty;
+
+            return canDirty;
+        }
+
+        /// <summary>
+        /// Sets IsDirty to false.
+        /// </summary>
+        internal void ResetDirty()
+        {
+            //If not a sync object and using unreliable channel.
+            if (!IsSyncObject && Settings.Channel == Channel.Unreliable)
+            {
+                //Check if dirty can be unset or if another tick must be run using reliable.
+                if (_currentChannel == Channel.Unreliable)
+                    _currentChannel = Channel.Reliable;
+                //Already sent reliable, can undirty. Channel will reset next time this dirties.
+                else
+                    IsDirty = false;
+            }
+            //If syncObject or using reliable unset dirty.
+            else
+            {
+                IsDirty = false;
+            }
+        }
+        /// <summary>
+        /// True if dirty and enough time has passed to write changes.
+        /// </summary>
+        /// <param name="tick"></param>
+        /// <returns></returns>
+        internal bool SyncTimeMet(uint tick)
+        {
+            return (IsDirty && tick >= NextSyncTick);
+        }
+        /// <summary>
+        /// Writes current value.
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="resetSyncTick">True to set the next time data may sync.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public virtual void WriteDelta(PooledWriter writer, bool resetSyncTick = true)
+        {
+            WriteHeader(writer, resetSyncTick);
+        }
+        /// <summary>
+        /// Writers the header for this SyncType.
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="resetSyncTick"></param>
+        protected virtual void WriteHeader(PooledWriter writer, bool resetSyncTick = true)
+        {
+            if (resetSyncTick)
+                NextSyncTick = NetworkManager.TimeManager.LocalTick + _timeToTicks;
+
+            writer.WriteByte((byte)SyncIndex);
+        }
+        /// <summary>
+        /// Writes current value if not initialized value.
+        /// </summary>
+        /// <param name="writer"></param>
+        public virtual void WriteFull(PooledWriter writer) { }
+        /// <summary>
+        /// Sets current value as client.
+        /// </summary>
+        /// <param name="reader"></param>
+        [Obsolete("Use Read(PooledReader, bool).")] //Remove on 2023/06/01
+        public virtual void Read(PooledReader reader) { }
+        /// <summary>
+        /// Sets current value as server or client.
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="asServer"></param>
+        public virtual void Read(PooledReader reader, bool asServer) { }
+        /// <summary>
+        /// Resets to initialized values.
+        /// </summary>
+        [Obsolete("Use ResetState().")]
+        public virtual void Reset() { }
+        /// <summary>
+        /// Resets initialized values.
+        /// </summary>
+        public virtual void ResetState()
+        {
+            NextSyncTick = 0;
+            ResetDirty();
+        }
+    }
+
+
+}
+#else
+
+using FishNet.Managing;
+using FishNet.Managing.Timing;
+using FishNet.Serializing;
+using FishNet.Transporting;
+using System;
+using System.Runtime.CompilerServices;
+using UnityEngine;
+
+namespace FishNet.Object.Synchronizing.Internal
+{
+    public class SyncBase : ISyncType
+    {
+
+        #region Public.
+        /// <summary>
+        /// True if this SyncBase has been registered within it's containing class.
+        /// </summary>
+        public bool IsRegistered { get; private set; }
+        /// <summary>
+        /// True if the object for which this SyncType is for has been initialized for the network.
+        /// </summary>
+        public bool IsNetworkInitialized => (IsRegistered && (NetworkBehaviour.IsServer || NetworkBehaviour.IsClient));
+        /// <summary>
+        /// True if a SyncObject, false if a SyncVar.
+        /// </summary>
+        public bool IsSyncObject { get; private set; }
+        /// <summary>
+        /// The settings for this SyncVar.
+        /// </summary>
+        public Settings Settings = new Settings();
+        /// <summary>
+        /// How often updates may send.
+        /// </summary>
+        public float SendRate => Settings.SendRate;
+        /// <summary>
+        /// True if this SyncVar needs to send data.
+        /// </summary>
+        public bool IsDirty { get; private set; }
+        /// <summary>
+        /// NetworkManager this uses.
+        /// </summary>
+        public NetworkManager NetworkManager = null;
+        /// <summary>
+        /// NetworkBehaviour this SyncVar belongs to.
+        /// </summary>
+        public NetworkBehaviour NetworkBehaviour = null;
+        /// <summary>
+        /// True if the server side has initialized this SyncType.
+        /// </summary>
+        public bool OnStartServerCalled { get; private set; }
+        /// <summary>
+        /// True if the client side has initialized this SyncType.
+        /// </summary>
+        public bool OnStartClientCalled { get; private set; }
+        /// <summary>
+        /// Next time this SyncType may send data.
+        /// This is also the next time a client may send to the server when using client-authoritative SyncTypes.
+        /// </summary>
+        public uint NextSyncTick = 0;
+        /// <summary>
+        /// Index within the sync collection.
+        /// </summary>
+        public uint SyncIndex { get; protected set; } = 0;
+        /// <summary>
+        /// Channel to send on.
+        /// </summary>
+        internal Channel Channel => _currentChannel;
         #endregion
 
         #region Private.
@@ -107,131 +397,52 @@ namespace FishNet.Object.Synchronizing.Internal
         private const long DEFAULT_LAST_READ_DIRTYID = -1;
         #endregion
 
-
-        #region Constructors
-        public SyncBase() : this(new SyncTypeSettings()) { }
-        public SyncBase(SyncTypeSettings settings)
-        {
-            Settings = settings;
-        }
-        #endregion
-
         /// <summary>
-        /// Updates settings with new values.
+        /// Initializes this SyncBase.
         /// </summary>
-        public void UpdateSettings(SyncTypeSettings settings)
-        {
-            Settings = settings;
-            SetTimeToTicks();
-        }
-        /// <summary>
-        /// Updates settings with new values.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdatePermissions(WritePermission writePermissions, ReadPermission readPermissions)
-        {
-            UpdatePermissions(writePermissions);
-            UpdatePermissions(readPermissions);
-        }
-        /// <summary>
-        /// Updates settings with new values.
-        /// </summary>
-        public void UpdatePermissions(WritePermission writePermissions) => Settings.WritePermission = writePermissions;
-        /// <summary>
-        /// Updates settings with new values.
-        /// </summary>
-        public void UpdatePermissions(ReadPermission readPermissions) => Settings.ReadPermission = readPermissions;
-        /// <summary>
-        /// Updates settings with new values.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdateSendRate(float sendRate)
-        {
-            Settings.SendRate = sendRate;
-            SetTimeToTicks();
-        }
-        /// <summary>
-        /// Updates settings with new values.
-        /// </summary>
-        public void UpdateSettings(Channel channel)
-        {
-            CheckChannel(ref channel);
-            _currentChannel = channel;
-        }
-        /// <summary>
-        /// Updates settings with new values.
-        /// </summary>
-        public void UpdateSettings(WritePermission writePermissions, ReadPermission readPermissions, float sendRate, Channel channel)
-        {
-            CheckChannel(ref channel);
-            _currentChannel = channel;
-            Settings = new SyncTypeSettings(writePermissions, readPermissions, sendRate, channel);
-            SetTimeToTicks();
-        }
-
-        /// <summary>
-        /// Checks channel and corrects if not valid.
-        /// </summary>
-        /// <param name="c"></param>
-        private void CheckChannel(ref Channel c)
-        {
-            if (c == Channel.Unreliable && IsSyncObject)
-            {
-                c = Channel.Reliable;
-                string warning = $"Channel cannot be unreliable for SyncObjects. Channel has been changed to reliable.";
-                NetworkManager.LogWarning(warning);
-            }
-        }
-
-        /// <summary>
-        /// Initializes this SyncBase before user Awake code.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [MakePublic]
-        internal void InitializeEarly(NetworkBehaviour nb, uint syncIndex, bool isSyncObject)
+        public void InitializeInstance(NetworkBehaviour nb, uint syncIndex, WritePermission writePermissions, ReadPermission readPermissions, float tickRate, Channel channel, bool isSyncObject)
         {
             NetworkBehaviour = nb;
             SyncIndex = syncIndex;
+            _currentChannel = channel;
             IsSyncObject = isSyncObject;
+            Settings = new Settings()
+            {
+                WritePermission = writePermissions,
+                ReadPermission = readPermissions,
+                SendRate = tickRate,
+                Channel = channel
+            };
 
             NetworkBehaviour.RegisterSyncType(this, SyncIndex);
         }
 
         /// <summary>
-        /// Called during InitializeLate in NetworkBehaviours to indicate user Awake code has executed.
+        /// Sets the SyncIndex.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [MakePublic]
-        internal void InitializeLate()
+        public void SetRegistered()
         {
-            Initialized();
+            Registered();
         }
 
         /// <summary>
         /// Called when the SyncType has been registered, but not yet initialized over the network.
         /// </summary>
-        protected virtual void Initialized()
+        protected virtual void Registered()
         {
-            IsInitialized = true;
+            IsRegistered = true;
         }
 
         /// <summary>
         /// PreInitializes this for use with the network.
         /// </summary>
-        [MakePublic]
-        internal protected void PreInitialize(NetworkManager networkManager)
+        public void PreInitialize(NetworkManager networkManager)
         {
             NetworkManager = networkManager;
-            SetTimeToTicks();
-        }
+            if (Settings.SendRate < 0f)
+                Settings.SendRate = networkManager.ServerManager.GetSynctypeRate();
 
-        /// <summary>
-        /// Sets ticks needed to pass for send rate.
-        /// </summary>
-        private void SetTimeToTicks()
-        {
-            if (NetworkManager == null)
-                return;
             _timeToTicks = NetworkManager.TimeManager.TimeToTicks(Settings.SendRate, TickRounding.RoundUp);
         }
 
@@ -239,8 +450,7 @@ namespace FishNet.Object.Synchronizing.Internal
         /// Called after OnStartXXXX has occurred for the NetworkBehaviour.
         /// </summary>
         /// <param name="asServer">True if OnStartServer was called, false if OnStartClient.</param>
-        [MakePublic]
-        internal protected virtual void OnStartCallback(bool asServer)
+        public virtual void OnStartCallback(bool asServer)
         {
             if (asServer)
                 OnStartServerCalled = true;
@@ -251,8 +461,7 @@ namespace FishNet.Object.Synchronizing.Internal
         /// Called before OnStopXXXX has occurred for the NetworkBehaviour.
         /// </summary>
         /// <param name="asServer">True if OnStopServer was called, false if OnStopClient.</param>
-        [MakePublic]
-        internal protected virtual void OnStopCallback(bool asServer)
+        public virtual void OnStopCallback(bool asServer)
         {
             if (asServer)
                 OnStartServerCalled = false;
@@ -260,17 +469,12 @@ namespace FishNet.Object.Synchronizing.Internal
                 OnStartClientCalled = false;
         }
 
-        /// <summary>
-        /// True if can set values and send them over the network.
-        /// </summary>
-        /// <param name="warn"></param>
-        /// <returns></returns>
         protected bool CanNetworkSetValues(bool warn = true)
         {
             /* If not registered then values can be set
              * since at this point the object is still being initialized
              * in awake so we want those values to be applied. */
-            if (!IsInitialized)
+            if (!IsRegistered)
                 return true;
             /* If the network is not initialized yet then let
              * values be set. Values set here will not synchronize
@@ -281,7 +485,10 @@ namespace FishNet.Object.Synchronizing.Internal
             if (!IsNetworkInitialized)
                 return true;
             //If server is active then values can be set no matter what.
-            if (NetworkBehaviour.IsServerStarted)
+            if (NetworkBehaviour.IsServer)
+                return true;
+            //Predicted spawning is enabled.
+            if (NetworkManager != null && NetworkManager.PredictionManager.GetAllowPredictedSpawning() && NetworkBehaviour.NetworkObject.AllowPredictedSpawning)
                 return true;
             /* If here then server is not active and additional
              * checks must be performed. */
@@ -304,11 +511,8 @@ namespace FishNet.Object.Synchronizing.Internal
         /// <summary>
         /// Dirties this Sync and the NetworkBehaviour.
         /// </summary>
-        /// <param name="sendRpc">True to send current dirtied values immediately as a RPC. When this occurs values will arrive in the order they are sent and interval is ignored.</param>
-        public bool Dirty()//bool sendRpc = false)
+        public bool Dirty()
         {
-            //if (sendRpc)
-            //    NextSyncTick = 0;
             /* Reset channel even if already dirty.
              * This is because the value might have changed
              * which will reset the eventual consistency state. */
@@ -317,7 +521,7 @@ namespace FishNet.Object.Synchronizing.Internal
             /* Once dirty don't undirty until it's
              * processed. This ensures that data
              * is flushed. */
-            bool canDirty = NetworkBehaviour.DirtySyncType();
+            bool canDirty = NetworkBehaviour.DirtySyncType(IsSyncObject);
             //If first time dirtying increase dirtyId.
             if (IsDirty != canDirty)
                 _changeId++;
@@ -390,10 +594,10 @@ namespace FishNet.Object.Synchronizing.Internal
         /// <summary>
         /// Writes current value.
         /// </summary>
+        /// <param name="writer"></param>
         /// <param name="resetSyncTick">True to set the next time data may sync.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [MakePublic]
-        internal protected virtual void WriteDelta(PooledWriter writer, bool resetSyncTick = true)
+        public virtual void WriteDelta(PooledWriter writer, bool resetSyncTick = true)
         {
             WriteHeader(writer, resetSyncTick);
         }
@@ -420,30 +624,41 @@ namespace FishNet.Object.Synchronizing.Internal
         /// Writes all values for the SyncType.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [MakePublic]
-        internal protected virtual void WriteFull(PooledWriter writer)
+        public virtual void WriteFull(PooledWriter writer) 
         {
             FullWritten();
         }
         /// <summary>
-        /// Sets current value as server or client through deserialization.
+        /// Sets current value as client.
         /// </summary>
-        [MakePublic]
-        internal protected virtual void Read(PooledReader reader, bool asServer) { }
+        /// <param name="reader"></param>
+        [Obsolete("Use Read(PooledReader, bool).")] //Remove on 2023/06/01
+        public virtual void Read(PooledReader reader) { }
+        /// <summary>
+        /// Sets current value as server or client.
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="asServer"></param>
+        public virtual void Read(PooledReader reader, bool asServer) { }
+        /// <summary>
+        /// Resets to initialized values.
+        /// </summary>
+        [Obsolete("Use ResetState().")]
+        public virtual void Reset() { }
         /// <summary>
         /// Resets initialized values.
         /// </summary>
-        [MakePublic]
-        internal protected virtual void ResetState()
+        public virtual void ResetState()
         {
             _lastWriteFullLocalTick = 0;
             _changeId = 0;
             _lastReadDirtyId = DEFAULT_LAST_READ_DIRTYID;
             NextSyncTick = 0;
-            SetCurrentChannel(Settings.Channel);
-            IsDirty = false;
+            ResetDirty();
         }
     }
 
 
 }
+
+#endif

@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 
     public static class Vectors

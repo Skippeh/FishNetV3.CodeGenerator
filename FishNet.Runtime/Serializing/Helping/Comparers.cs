@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 namespace FishNet.Serializing.Helping
 {
 
-    public class PublicPropertyComparer<T>
+    public class GeneratedComparer<T>
     {
         /// <summary>
         /// Compare if T is default.

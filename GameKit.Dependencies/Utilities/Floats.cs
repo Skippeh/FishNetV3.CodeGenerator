@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 
     public static class Floats

@@ -1,6 +1,6 @@
 ﻿using FishNet.Managing;
 using FishNet.Object;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -15,6 +15,7 @@ namespace FishNet.Utility.Extension
         /// </summary>
         /// <param name="s">Scene to get objects in.</param>
         /// <param name="firstOnly">True to only return the first NetworkObject within an object chain. False will return nested NetworkObjects.</param>
+        /// <param name="cache">ListCache of found NetworkObjects.</param>
         /// <returns></returns>
         public static void GetSceneNetworkObjects(Scene s, bool firstOnly, bool errorOnDuplicates, ref List<NetworkObject> result)
         {
@@ -67,13 +68,15 @@ namespace FishNet.Utility.Extension
             {
                 if (!errorOnDuplicates)
                     return false;
+                if (!nob.IsSceneObject)
+                    return false;
 
                 ulong id = nob.SceneId;
                 //There is a duplicate.
                 if (sceneIds.TryGetValue(id, out NetworkObject originalNob))
                 {
                     string err = $"Object {nob.name} and {originalNob.name} in scene {nob.gameObject.scene.name} have the same sceneId of {id}. This will result in spawning errors. Exit play mode and use the Fish-Networking menu to rebuild sceneIds for scene {nob.gameObject.scene.name}.";
-                    NetworkManagerExtensions.LogError(err);
+                    NetworkManager.StaticLogError(err);
                     return true;
                 }
                 else
@@ -84,7 +87,6 @@ namespace FishNet.Utility.Extension
             }
 
         }
-
     }
 
 }

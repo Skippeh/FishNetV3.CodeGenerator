@@ -1,9 +1,9 @@
 ﻿#if UNITY_EDITOR
 using FishNet.Editing;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using UnityEditor;
 using UnityEngine;
-using GameKitEditing = GameKit.Dependencies.Utilities.Editing;
+using GameKitEditing = GameKit.Utilities.Editing;
 
 namespace FishNet.Component.Transforming.Editing
 {

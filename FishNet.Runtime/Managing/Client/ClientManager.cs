@@ -7,7 +7,7 @@ using FishNet.Managing.Transporting;
 using FishNet.Serializing;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -100,22 +100,16 @@ namespace FishNet.Managing.Client
         [SerializeField]
         private bool _changeFrameRate = true;
         /// <summary>
-        /// Maximum frame rate the client may run at. When as host this value runs at whichever is higher between client and server.
+        /// 
         /// </summary>
-        internal ushort FrameRate => (_changeFrameRate) ? _frameRate : (ushort)0; [Tooltip("Maximum frame rate the client may run at. When as host this value runs at whichever is higher between client and server.")]
+        [Tooltip("Maximum frame rate the client may run at. When as host this value runs at whichever is higher between client and server.")]
         [Range(1, NetworkManager.MAXIMUM_FRAMERATE)]
         [SerializeField]
         private ushort _frameRate = NetworkManager.MAXIMUM_FRAMERATE;
-        /// Sets the maximum frame rate the client may run at. Calling this method will enable ChangeFrameRate.
+        /// <summary>
+        /// Maximum frame rate the client may run at. When as host this value runs at whichever is higher between client and server.
         /// </summary>
-        /// <param name="value">New value.</param>
-        public void SetFrameRate(ushort value)
-        {
-            _frameRate = (ushort)Mathf.Clamp(value, 0, NetworkManager.MAXIMUM_FRAMERATE);
-            _changeFrameRate = true;
-            if (NetworkManager != null)
-                NetworkManager.UpdateFramerate();
-        }
+        internal ushort FrameRate => (_changeFrameRate) ? _frameRate : (ushort)0;
         #endregion
 
         #region Private.
@@ -123,6 +117,14 @@ namespace FishNet.Managing.Client
         /// Last unscaled time client got a packet.
         /// </summary>
         private float _lastPacketTime;
+        /// <summary>
+        /// Updates information about the last packet received.
+        /// </summary>
+        private void UpdateLastPacketDatas()
+        {
+            _lastPacketTime = Time.unscaledTime;
+            LastPacketLocalTick = NetworkManager.TimeManager.LocalTick;
+        }
         /// <summary>
         /// Used to read splits.
         /// </summary>
@@ -164,7 +166,7 @@ namespace FishNet.Managing.Client
         /// Called when the server sends a connection state change for any client.
         /// </summary>
         /// <param name="args"></param>
-        private void OnClientConnectionBroadcast(ClientConnectionChangeBroadcast args, Channel channel)
+        private void OnClientConnectionBroadcast(ClientConnectionChangeBroadcast args)
         {
             //If connecting invoke after added to clients, otherwise invoke before removed.
             RemoteConnectionStateArgs rcs = new RemoteConnectionStateArgs((args.Connected) ? RemoteConnectionState.Started : RemoteConnectionState.Stopped, args.Id, -1);
@@ -189,7 +191,7 @@ namespace FishNet.Managing.Client
         /// Called when the server sends all currently connected clients.
         /// </summary>
         /// <param name="args"></param>
-        private void OnConnectedClientsBroadcast(ConnectedClientsBroadcast args, Channel channel)
+        private void OnConnectedClientsBroadcast(ConnectedClientsBroadcast args)
         {
             NetworkManager.ClearClientsCollection(Clients);
 
@@ -303,7 +305,7 @@ namespace FishNet.Managing.Client
             }
             else
             {
-                _lastPacketTime = Time.unscaledTime;
+                UpdateLastPacketDatas();
             }
 
             if (NetworkManager.CanLog(LoggingType.Common))
@@ -352,21 +354,15 @@ namespace FishNet.Managing.Client
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             _parseLogger.Reset();
 #endif
-            _lastPacketTime = Time.unscaledTime;
+            UpdateLastPacketDatas();
 
-            ArraySegment<byte> segment;
-            if (NetworkManager.TransportManager.HasIntermediateLayer)
-                segment = NetworkManager.TransportManager.ProcessIntermediateIncoming(args.Data, true);
-            else
-                segment = args.Data;
-
+            ArraySegment<byte> segment = args.Data;
             NetworkManager.StatisticsManager.NetworkTraffic.LocalClientReceivedData((ulong)segment.Count);
             if (segment.Count <= TransportManager.TICK_BYTES)
                 return;
 
             PooledReader reader = ReaderPool.Retrieve(segment, NetworkManager, Reader.DataSource.Server);
-            TimeManager tm = NetworkManager.TimeManager;
-            tm.LastPacketTick.Update(reader.ReadTickUnpacked(), EstimatedTick.OldTickOption.Discard, false);
+            NetworkManager.TimeManager.SetLastPacketTick(reader.ReadTickUnpacked());
             ParseReader(reader, args.Channel);
             ReaderPool.Store(reader);
 
@@ -374,6 +370,7 @@ namespace FishNet.Managing.Client
 
         internal void ParseReader(PooledReader reader, Channel channel, bool print = false)
         {
+            bool hasIntermediateLayer = NetworkManager.TransportManager.HasIntermediateLayer;
             PacketId packetId = PacketId.Unset;
 #if !UNITY_EDITOR && !DEVELOPMENT_BUILD
             try
@@ -389,7 +386,7 @@ namespace FishNet.Managing.Client
                 reader.ReadPacketId();
                 int expectedMessages;
                 _splitReader.GetHeader(reader, out expectedMessages);
-                _splitReader.Write(NetworkManager.TimeManager.LastPacketTick.LastRemoteTick, reader, expectedMessages);
+                _splitReader.Write(NetworkManager.TimeManager.LastPacketTick, reader, expectedMessages);
                 /* If fullMessage returns 0 count then the split
                  * has not written fully yet. Otherwise, if there is
                  * data within then reinitialize reader with the
@@ -398,7 +395,21 @@ namespace FishNet.Managing.Client
                 if (fullMessage.Count == 0)
                     return;
 
-                reader.Initialize(fullMessage, NetworkManager, dataSource);
+                //Initialize reader with full message.
+                if (hasIntermediateLayer)
+                    reader.Initialize(NetworkManager.TransportManager.ProcessIntermediateIncoming(fullMessage, true), NetworkManager, dataSource);
+                else
+                    reader.Initialize(fullMessage, NetworkManager, dataSource);
+            }
+            //Not split.
+            else
+            {
+                //Override values with intermediate layer changes.
+                if (hasIntermediateLayer)
+                {
+                    ArraySegment<byte> modified = NetworkManager.TransportManager.ProcessIntermediateIncoming(reader.GetRemainingData(), false);
+                    reader.Initialize(modified, NetworkManager, dataSource);
+                }
             }
 
             while (reader.Remaining > 0)
@@ -440,12 +451,6 @@ namespace FishNet.Managing.Client
                     {
                         Objects.ParseRpcLink(reader, (ushort)packetId, channel);
                     }
-#if PREDICTION_V2
-                    else if (packetId == PacketId.StateUpdate)
-                    {
-                        NetworkManager.PredictionManager.ParseStateUpdate(reader);
-                    }
-#endif
                     else if (packetId == PacketId.Replicate)
                     {
                         Objects.ParseReplicateRpc(reader, null, channel);
@@ -470,9 +475,13 @@ namespace FishNet.Managing.Client
                     {
                         ParsePingPong(reader);
                     }
-                    else if (packetId == PacketId.SyncType)
+                    else if (packetId == PacketId.SyncVar)
                     {
-                        Objects.ParseSyncType(reader, channel);
+                        Objects.ParseSyncType(reader, false, channel);
+                    }
+                    else if (packetId == PacketId.SyncObject)
+                    {
+                        Objects.ParseSyncType(reader, true, channel);
                     }
                     else if (packetId == PacketId.PredictedSpawnResult)
                     {
@@ -480,7 +489,7 @@ namespace FishNet.Managing.Client
                     }
                     else if (packetId == PacketId.TimingUpdate)
                     {
-                        NetworkManager.TimeManager.ParseTimingUpdate();
+                        NetworkManager.TimeManager.ParseTimingUpdate(reader);
                     }
                     else if (packetId == PacketId.OwnershipChange)
                     {
@@ -548,7 +557,7 @@ namespace FishNet.Managing.Client
             NetworkManager networkManager = NetworkManager;
             int connectionId = reader.ReadNetworkConnectionId();
             //If only a client then make a new connection.
-            if (!networkManager.IsServerStarted)
+            if (!networkManager.IsServer)
             {
                 Clients.TryGetValueIL2CPP(connectionId, out Connection);
                 /* This is bad and should never happen unless the connection is dropping
@@ -590,8 +599,9 @@ namespace FishNet.Managing.Client
              * This still doesn't account for latency but
              * it's the best we can do until the client gets
              * a ping response. */
-            if (!networkManager.IsServerStarted)
-                networkManager.TimeManager.Tick = networkManager.TimeManager.LastPacketTick.LastRemoteTick;
+            //Only do this if not also server.
+            if (!networkManager.IsServer)
+                networkManager.TimeManager.Tick = networkManager.TimeManager.LastPacketTick;
 
             //Mark as authenticated.
             Connection.ConnectionAuthenticated();
@@ -625,7 +635,7 @@ namespace FishNet.Managing.Client
              * for server to drop and client not know about it as host.
              * This would mean a game crash or force close in which
              * the client would be gone as well anyway. */
-            if (!Started || NetworkManager.IsServerStarted)
+            if (!Started || NetworkManager.IsServer)
                 return;
             if (_remoteServerTimeout == RemoteTimeoutType.Disabled)
                 return;
@@ -635,7 +645,7 @@ namespace FishNet.Managing.Client
                 return;
 #endif
             //Wait two timing intervals to give packets a chance to come through.
-            if (NetworkManager.SceneManager.IsIteratingQueue(2f))
+            if (NetworkManager.SceneManager.IsIteratingQueue(TimeManager.TIMING_INTERVAL * 2f))
                 return;
 
             /* ServerManager version only checks every so often

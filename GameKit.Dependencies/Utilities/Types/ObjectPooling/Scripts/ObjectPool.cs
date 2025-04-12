@@ -1,9 +1,9 @@
-﻿using GameKit.Dependencies.Utilities;
+﻿using GameKit.Utilities;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.ObjectPooling
+namespace GameKit.Utilities.ObjectPooling
 {
 
     public class ObjectPool : MonoBehaviour

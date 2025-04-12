@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace GameKit.Dependencies.Utilities.Types
+namespace GameKit.Utilities.Types
 {
 
 

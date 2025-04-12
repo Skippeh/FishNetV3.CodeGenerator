@@ -2,7 +2,7 @@
 using UnityEngine;
 
 
-namespace GameKit.Dependencies.Utilities.ObjectPooling
+namespace GameKit.Utilities.ObjectPooling
 {
 
     public class PoolData

@@ -1,10 +1,10 @@
 ﻿
-using GameKit.Dependencies.Utilities.Types;
+using GameKit.Utilities.Types;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 
     public static class Objects

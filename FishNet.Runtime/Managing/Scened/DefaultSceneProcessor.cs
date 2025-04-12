@@ -128,7 +128,7 @@ namespace FishNet.Managing.Scened
                 {
                     LoadingAsyncOperations[i].allowSceneActivation = true;
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     base.SceneManager.NetworkManager.LogError($"An error occured while activating scenes. {e.Message}");
                 }

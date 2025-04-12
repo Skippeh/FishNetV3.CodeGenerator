@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.Types
+namespace GameKit.Utilities.Types
 {
 
     /// <summary>

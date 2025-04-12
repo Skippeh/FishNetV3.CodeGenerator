@@ -1,8 +1,9 @@
-using GameKit.Dependencies.Utilities.Types.CanvasContainers;
+using GameKit.Utilities.Types;
+using GameKit.Utilities.Types.CanvasContainers;
 using System.Collections.Generic;
 
 
-namespace GameKit.Dependencies.Utilities.Types.OptionMenuButtons
+namespace GameKit.Utilities.Types.OptionMenuButtons
 {
 
     public class FloatingOptions : CanvasGroupFader
@@ -33,7 +34,7 @@ namespace GameKit.Dependencies.Utilities.Types.OptionMenuButtons
         protected virtual void RemoveButtons()
         {
             foreach (ButtonData item in Buttons)
-                ResettableObjectCaches<ButtonData>.Store(item);
+                GameKit.Utilities.ResettableObjectCaches<ButtonData>.Store(item);
             Buttons.Clear();
         }
 

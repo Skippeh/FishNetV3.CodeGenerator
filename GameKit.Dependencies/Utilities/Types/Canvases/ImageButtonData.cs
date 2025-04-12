@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.Types.CanvasContainers
+namespace GameKit.Utilities.Types.CanvasContainers
 {
     public class ImageButtonData : ButtonData
     {

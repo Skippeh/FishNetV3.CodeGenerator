@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Text;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 
     public static class Arrays
@@ -10,15 +9,11 @@ namespace GameKit.Dependencies.Utilities
         /// Randomizer used for shuffling.
         /// </summary>
         private static System.Random _random = new System.Random();
-        /// <summary>
-        /// StringBuilder to save performance.
-        /// </summary>
-        private static StringBuilder _stringBuilder = new StringBuilder();
 
         /// <summary>
         /// Adds an entry to a list if it does not exist already.
         /// </summary>
-        /// <returns>True if being added.</returns>
+        /// <returns>True if the entry was added.</returns>
         public static bool AddUnique<T>(this List<T> list, T value)
         {
             bool contains = list.Contains((T)value);
@@ -26,26 +21,6 @@ namespace GameKit.Dependencies.Utilities
                 list.Add((T)value);
 
             return !contains;
-        }
-
-        /// <summary>
-        /// Cast each item in the collection ToString and returns all values.
-        /// </summary>
-        /// <returns></returns>
-        public static string ToString<T>(this IEnumerable<T> collection, string delimeter = ", ")
-        {
-            if (collection == null)
-                return string.Empty;
-
-            _stringBuilder.Clear();
-            foreach (T item in collection)
-                _stringBuilder.Append(item.ToString() + delimeter);
-
-            //Remove ending delimeter.
-            if (_stringBuilder.Length > delimeter.Length)
-                _stringBuilder.Length -= delimeter.Length;
-
-            return _stringBuilder.ToString();
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
     /// <summary>
     /// Ways a CanvasGroup can have it's blocking properties modified.

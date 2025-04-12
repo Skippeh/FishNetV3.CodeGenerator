@@ -11,7 +11,7 @@ using FishNet.Serializing;
 using FishNet.Transporting;
 using FishNet.Utility.Extension;
 using FishNet.Utility.Performance;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -62,6 +62,15 @@ namespace FishNet.Managing.Server
 
         #region Serialized.
         /// <summary>
+        /// Authenticator for this ServerManager. May be null if not using authentication.
+        /// </summary>
+        [Obsolete("Use GetAuthenticator and SetAuthenticator.")] //Remove on 2023/06/01
+        public Authenticator Authenticator
+        {
+            get => GetAuthenticator();
+            set => SetAuthenticator(value);
+        }
+        /// <summary>
         /// Gets the Authenticator for this manager.
         /// </summary>
         /// <returns></returns>
@@ -106,7 +115,7 @@ namespace FishNet.Managing.Server
         /// SyncTypeRate cannot yet be changed at runtime because this would require recalculating rates on SyncBase, which is not yet implemented.
         /// </summary>
         /// <returns></returns>
-        internal float GetSyncTypeRate() => _syncTypeRate;
+        internal float GetSynctypeRate() => _syncTypeRate;
         [Tooltip("Default send rate for SyncTypes. A value of 0f will send changed values every tick.")]
         [Range(0f, 60f)]
         [SerializeField]
@@ -136,20 +145,10 @@ namespace FishNet.Managing.Server
         [Range(1, NetworkManager.MAXIMUM_FRAMERATE)]
         [SerializeField]
         private ushort _frameRate = NetworkManager.MAXIMUM_FRAMERATE;
-        /// Sets the maximum frame rate the client may run at. Calling this method will enable ChangeFrameRate.
-        /// </summary>
-        /// <param name="value">New value.</param>
-        public void SetFrameRate(ushort value)
-        {
-            _frameRate = (ushort)Mathf.Clamp(value, 0, NetworkManager.MAXIMUM_FRAMERATE);
-            _changeFrameRate = true;
-            if (NetworkManager != null)
-                NetworkManager.UpdateFramerate();
-        }
         /// <summary>
         /// True to share the Ids of clients and the objects they own with other clients. No sensitive information is shared.
         /// </summary>
-        public bool ShareIds => _shareIds;
+        internal bool ShareIds => _shareIds;
         [Tooltip("True to share the Ids of clients and the objects they own with other clients. No sensitive information is shared.")]
         [SerializeField]
         private bool _shareIds = true;
@@ -165,6 +164,13 @@ namespace FishNet.Managing.Server
         [Tooltip("True to automatically start the server connection when running as headless.")]
         [SerializeField]
         private bool _startOnHeadless = true;
+        /// <summary>
+        /// True to kick clients which send data larger than the MTU.
+        /// </summary>
+        internal bool LimitClientMTU => _limitClientMTU;
+        [Tooltip("True to kick clients which send data larger than the MTU.")]
+        [SerializeField]
+        private bool _limitClientMTU = true;
         #endregion
 
         #region Private.
@@ -335,7 +341,7 @@ namespace FishNet.Managing.Server
                 return;
 #endif
             //Wait two timing intervals to give packets a chance to come through.
-            if (NetworkManager.SceneManager.IsIteratingQueue(2f))
+            if (NetworkManager.SceneManager.IsIteratingQueue(TimeManager.TIMING_INTERVAL * 2f))
                 return;
 
             float unscaledTime = Time.unscaledTime;
@@ -613,13 +619,7 @@ namespace FishNet.Managing.Server
             //Not from a valid connection.
             if (args.ConnectionId < 0)
                 return;
-
-            ArraySegment<byte> segment;
-            if (NetworkManager.TransportManager.HasIntermediateLayer)
-                segment = NetworkManager.TransportManager.ProcessIntermediateIncoming(args.Data, false);
-            else
-                segment = args.Data;
-
+            ArraySegment<byte> segment = args.Data;
             NetworkManager.StatisticsManager.NetworkTraffic.LocalServerReceivedData((ulong)segment.Count);
             if (segment.Count <= TransportManager.TICK_BYTES)
                 return;
@@ -643,7 +643,7 @@ namespace FishNet.Managing.Server
             Reader.DataSource dataSource = Reader.DataSource.Client;
             reader = ReaderPool.Retrieve(segment, NetworkManager, dataSource);
             uint tick = reader.ReadTickUnpacked();
-            NetworkManager.TimeManager.LastPacketTick.Update(tick);
+            NetworkManager.TimeManager.SetLastPacketTick(tick);
             /* This is a special condition where a message may arrive split.
             * When this occurs buffer each packet until all packets are
             * received. */
@@ -655,7 +655,7 @@ namespace FishNet.Managing.Server
                 int expectedMessages;
                 _splitReader.GetHeader(reader, out expectedMessages);
                 //If here split message can be written.
-                _splitReader.Write(NetworkManager.TimeManager.LastPacketTick.LastRemoteTick, reader, expectedMessages);
+                _splitReader.Write(NetworkManager.TimeManager.LastPacketTick, reader, expectedMessages);
 
                 /* If fullMessage returns 0 count then the split
                  * has not written fully yet. Otherwise, if there is
@@ -674,7 +674,22 @@ namespace FishNet.Managing.Server
                  * unrelated data added afterwards. We're going to cut
                  * the client some slack in this situation for the sake
                  * of keeping things simple. */
-                reader.Initialize(fullMessage, NetworkManager, dataSource);
+
+                //Initialize reader with full message.
+                if (hasIntermediateLayer)
+                    reader.Initialize(NetworkManager.TransportManager.ProcessIntermediateIncoming(fullMessage, false), NetworkManager, dataSource);
+                else
+                    reader.Initialize(fullMessage, NetworkManager, dataSource);
+            }
+            //Not Split.
+            else
+            {
+                //Override values with intermediate layer changes.
+                if (hasIntermediateLayer)
+                {
+                    ArraySegment<byte> modified = NetworkManager.TransportManager.ProcessIntermediateIncoming(reader.GetRemainingData(), false);
+                    reader.Initialize(modified, NetworkManager, dataSource);
+                }
             }
 
             //Parse reader.
@@ -693,13 +708,12 @@ namespace FishNet.Managing.Server
                     Kick(args.ConnectionId, KickReason.UnexpectedProblem, LoggingType.Error, $"ConnectionId {args.ConnectionId} not found within Clients. Connection will be kicked immediately.");
                     return;
                 }
-                conn.TryUpdateLocalTick(tick);
                 conn.PacketTick.Update(NetworkManager.TimeManager, tick, Timing.EstimatedTick.OldTickOption.SetLastRemoteTick);
                 /* If connection isn't authenticated and isn't a broadcast
                  * then disconnect client. If a broadcast then process
                  * normally; client may still become disconnected if the broadcast
                  * does not allow to be called while not authenticated. */
-                if (!conn.IsAuthenticated && packetId != PacketId.Broadcast)
+                if (!conn.Authenticated && packetId != PacketId.Broadcast)
                 {
                     conn.Kick(KickReason.ExploitAttempt, LoggingType.Common, $"ConnectionId {conn.ClientId} sent a Broadcast without being authenticated. Connection will be kicked immediately.");
                     return;
@@ -843,7 +857,7 @@ namespace FishNet.Managing.Server
                 };
                 foreach (NetworkConnection c in Clients.Values)
                 {
-                    if (c.IsAuthenticated)
+                    if (c.Authenticated)
                         Broadcast(c, changeMsg);
                 }
 

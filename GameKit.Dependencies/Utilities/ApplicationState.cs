@@ -5,7 +5,7 @@ using UnityEditor;
 
 
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 #if UNITY_EDITOR
     [InitializeOnLoad]

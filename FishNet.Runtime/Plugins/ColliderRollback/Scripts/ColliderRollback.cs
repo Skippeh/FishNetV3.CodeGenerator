@@ -1,5 +1,4 @@
-﻿using FishNet.Managing;
-using FishNet.Object;
+﻿using FishNet.Object;
 using UnityEngine;
 
 namespace FishNet.Component.ColliderRollback

@@ -1,5 +1,4 @@
-﻿using FishNet.Managing;
-using FishNet.Managing.Logging;
+﻿using FishNet.Managing.Logging;
 using UnityEngine;
 
 namespace FishNet.Object
@@ -15,7 +14,7 @@ namespace FishNet.Object
         /// <returns></returns>
         public bool CanLog(LoggingType loggingType)
         {
-            return NetworkManager.CanLog(loggingType);
+            return (NetworkManager == null) ? false : NetworkManager.CanLog(loggingType);
         }
     }
 

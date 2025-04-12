@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.ObjectPooling
+namespace GameKit.Utilities.ObjectPooling
 {
 
 

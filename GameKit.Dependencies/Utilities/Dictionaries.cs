@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
     public static class DictionaryFN
     {

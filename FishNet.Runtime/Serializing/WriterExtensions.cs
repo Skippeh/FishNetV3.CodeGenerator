@@ -1,4 +1,3 @@
-using FishNet.CodeGenerating;
 using FishNet.Connection;
 using FishNet.Documenting;
 using FishNet.Object;
@@ -30,7 +29,6 @@ namespace FishNet.Serializing
             DefaultPackedTypes.Add(typeof(long));
             DefaultPackedTypes.Add(typeof(ulong));
             DefaultPackedTypes.Add(typeof(Color));
-            DefaultPackedTypes.Add(typeof(Quaternion));
             DefaultPackedTypes.Add(typeof(Vector2Int));
             DefaultPackedTypes.Add(typeof(Vector3Int));
             DefaultPackedTypes.Add(typeof(Quaternion));
@@ -39,7 +37,7 @@ namespace FishNet.Serializing
         /// <summary>
         /// Writes value to dst without error checking.
         /// </summary>
-        [NotSerializer]
+        [CodegenExclude]
         internal static void WriteUInt32(byte[] dst, uint value, ref int position)
         {
             dst[position++] = (byte)value;
@@ -50,7 +48,7 @@ namespace FishNet.Serializing
         /// <summary>
         /// Writes value to dst without error checking.
         /// </summary>
-        [NotSerializer]
+        [CodegenExclude]
         internal static void WriteUInt64(byte[] dst, ulong value, ref int position)
         {
             dst[position++] = (byte)value;
@@ -66,9 +64,9 @@ namespace FishNet.Serializing
 
         //public static void WriteDictionary<TKey, TValue>(this Writer writer, Dictionary<TKey, TValue> dict) => writer.WriteDictionary(dict);
         //public static void WriteByte(this Writer writer, byte value) => writer.WriteByte(value);
-        //[NotSerializer]
+        //[CodegenExclude]
         //public static void WriteBytes(this Writer writer, byte[] buffer, int offset, int count) => writer.WriteBytes(buffer, offset, count);
-        //[NotSerializer]
+        //[CodegenExclude]
         //public static void WriteBytesAndSize(this Writer writer, byte[] buffer, int offset, int count) => writer.WriteBytesAndSize(buffer, offset, count);
         //public static void WriteBytesAndSize(this Writer writer, byte[] value) => writer.WriteBytesAndSize(value);
 
@@ -86,7 +84,7 @@ namespace FishNet.Serializing
         //public static void WriteDecimal(this Writer writer, decimal value) => writer.WriteDecimal(value);
         //public static void WriteString(this Writer writer, string value) => writer.WriteString(value);
         //public static void WriteArraySegmentAndSize(this Writer writer, ArraySegment<byte> value) => writer.WriteArraySegmentAndSize(value);
-        //[NotSerializer]
+        //[CodegenExclude]
         //public static void WriteArraySegment(this Writer writer, ArraySegment<byte> value) => writer.WriteArraySegment(value);
         //public static void WriteVector2(this Writer writer, Vector2 value) => writer.WriteVector2(value);
         //public static void WriteVector3(this Writer writer, Vector3 value) => writer.WriteVector3(value);
@@ -108,7 +106,7 @@ namespace FishNet.Serializing
         //public static void WriteNetworkBehaviour(this Writer writer, NetworkBehaviour value) => writer.WriteNetworkBehaviour(value);
         //public static void WriteChannel(this Writer writer, Channel value) => writer.WriteChannel(value);
         //public static void WriteNetworkConnection(this Writer writer, NetworkConnection value) => writer.WriteNetworkConnection(value);
-        //[NotSerializer]
+        //[CodegenExclude]
         //public static void Write<T>(this Writer writer, T value) => writer.Write<T>(value);
 
     }

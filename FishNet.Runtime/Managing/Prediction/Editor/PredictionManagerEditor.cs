@@ -38,24 +38,9 @@ namespace FishNet.Managing.Predicting.Editing
             EditorGUILayout.ObjectField("Script:", MonoScript.FromMonoBehaviour((PredictionManager)target), typeof(PredictionManager), false);
             GUI.enabled = true;
 
-
-            EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(_queuedInputs);
-            EditorGUILayout.PropertyField(_redundancyCount);
-
-            EditorGUILayout.PropertyField(_allowPredictedSpawning);
-            if (_allowPredictedSpawning.boolValue == true)
-            {
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(_reservedObjectIds);
-                EditorGUI.indentLevel--;
-            }
-            EditorGUI.indentLevel--;
-            EditorGUILayout.Space();
-
             EditorGUILayout.LabelField("Server", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(_queuedInputs);
             EditorGUILayout.PropertyField(_dropExcessiveReplicates);
             EditorGUI.indentLevel++;
             if (_dropExcessiveReplicates.boolValue == true)
@@ -64,13 +49,25 @@ namespace FishNet.Managing.Predicting.Editing
             }
             else
             {
-#if !PREDICTION_V2
                 EditorGUILayout.PropertyField(_maximumConsumeCount);
-#endif
             }
             EditorGUI.indentLevel--;
             EditorGUI.indentLevel--;
 
+            EditorGUILayout.LabelField("Client", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(_redundancyCount);
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.PropertyField(_allowPredictedSpawning);
+            if (_allowPredictedSpawning.boolValue == true)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(_reservedObjectIds);
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.Space();
 
             serializedObject.ApplyModifiedProperties();
         }

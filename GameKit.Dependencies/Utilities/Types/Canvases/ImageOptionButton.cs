@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace GameKit.Dependencies.Utilities.Types.CanvasContainers
+namespace GameKit.Utilities.Types.CanvasContainers
 {
 
     public class OptionMenuImageButton : OptionMenuButton

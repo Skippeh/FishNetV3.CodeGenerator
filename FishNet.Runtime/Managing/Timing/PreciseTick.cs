@@ -1,5 +1,5 @@
 ﻿using FishNet.Serializing;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 
 namespace FishNet.Managing.Timing
 {
@@ -11,39 +11,21 @@ namespace FishNet.Managing.Timing
         /// </summary>
         public uint Tick;
         /// <summary>
-        /// Percentage of the tick returned between 0d and 1d.
+        /// Percentage into the next tick.
         /// </summary>
-        public double PercentAsDouble;
-        /// <summary>
-        /// Percentage of the tick returned between 0 and 100.
-        /// </summary>
-        public byte PercentAsByte;
+        public double Percent;
 
-        /// <summary>
-        /// Creates a precise tick where the percentage is a byte between 0 and 100.
-        /// </summary>
-        public PreciseTick(uint tick, byte percentAsByte)
-        {
-            Tick = tick;
-            PercentAsByte = percentAsByte;
-            PercentAsDouble = (percentAsByte / 100d);
-        }
-
-        /// <summary>
-        /// Creates a precise tick where the percentage is a double between 0d and 1d.
-        /// </summary>
         public PreciseTick(uint tick, double percent)
         {
             Tick = tick;
-            PercentAsByte = (byte)(percent * 100d);
-            PercentAsDouble = percent;
+            Percent = percent;
         }
 
         /// <summary>
         /// Prints PreciseTick information as a string.
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => $"Tick {Tick}, Percent {PercentAsByte.ToString("000")}";
+        public override string ToString() => $"Tick {Tick}, Percent {Percent.ToString("000")}";
     }
 
     public static class PreciseTickSerializer
@@ -51,14 +33,19 @@ namespace FishNet.Managing.Timing
         public static void WritePreciseTick(this Writer writer, PreciseTick value)
         {
             writer.WriteTickUnpacked(value.Tick);
-            writer.WriteByte(value.PercentAsByte);
+            /* No reason percent should exist beyond these values, but better to be safe.
+             * There is also no double clamp in Unity so... */
+            double percent = Maths.ClampDouble(value.Percent, 0d, 1f);
+            byte percentByte = (byte)(percent * 100);
+            writer.WriteByte(percentByte);
         }
 
         public static PreciseTick ReadPreciseTick(this Reader reader)
         {
             uint tick = reader.ReadTickUnpacked();
             byte percentByte = reader.ReadByte();
-            return new PreciseTick(tick, percentByte);
+            double percent = Maths.ClampDouble((percentByte / 100f), 0d, 1d);
+            return new PreciseTick(tick, percent);
         }
     }
 }

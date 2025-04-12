@@ -4,7 +4,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 
     public enum EditorLayoutEnableType

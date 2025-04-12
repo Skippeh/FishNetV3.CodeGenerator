@@ -1,14 +1,12 @@
-﻿using FishNet.CodeGenerating;
-using FishNet.Connection;
+﻿using FishNet.Connection;
 using FishNet.Documenting;
-using FishNet.Managing;
 using FishNet.Managing.Logging;
 using FishNet.Managing.Transporting;
 using FishNet.Object.Delegating;
 using FishNet.Serializing;
 using FishNet.Serializing.Helping;
 using FishNet.Transporting;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -23,11 +21,13 @@ namespace FishNet.Object
         private struct BufferedRpc
         {
             public PooledWriter Writer;
+            public Channel Channel;
             public DataOrderType OrderType;
 
-            public BufferedRpc(PooledWriter writer, DataOrderType orderType)
+            public BufferedRpc(PooledWriter writer, Channel channel, DataOrderType orderType)
             {
                 Writer = writer;
+                Channel = channel;
                 OrderType = orderType;
             }
         }
@@ -80,7 +80,7 @@ namespace FishNet.Object
         {
             TransportManager tm = _networkObjectCache.NetworkManager.TransportManager;
             foreach (BufferedRpc bRpc in _bufferedRpcs.Values)
-                tm.SendToClient((byte)Channel.Reliable, bRpc.Writer.GetArraySegment(), conn, true, bRpc.OrderType);
+                tm.SendToClient((byte)bRpc.Channel, bRpc.Writer.GetArraySegment(), conn, true, bRpc.OrderType);
         }
 
         /// <summary>
@@ -89,14 +89,19 @@ namespace FishNet.Object
         /// <param name="hash"></param>
         /// <param name="del"></param>
         [APIExclude]
-        [MakePublic]
+        [CodegenMakePublic]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RegisterServerRpc(uint hash, ServerRpcDelegate del)
         {
-            if (_serverRpcDelegates.TryAdd(hash, del))
-                IncreaseRpcMethodCount();
+            if (_serverRpcDelegates.TryGetValueIL2CPP(hash, out ServerRpcDelegate currentDelegate))
+            {
+                FishNet.Managing.NetworkManager.StaticLogError($"ServerRpc hash {hash} registered multiple times. First registration by {currentDelegate.Method.DeclaringType.GetType().FullName}. New registration by {GetType().FullName}.");
+            }
             else
-                NetworkManager.LogError($"ServerRpc key {hash} has already been added for {GetType().FullName} on {gameObject.name}");
+            {
+                _serverRpcDelegates[hash] = del;
+                IncreaseRpcMethodCount();
+            }
         }
         /// <summary>
         /// Registers a RPC method.
@@ -104,14 +109,19 @@ namespace FishNet.Object
         /// <param name="hash"></param>
         /// <param name="del"></param>
         [APIExclude]
-        [MakePublic]
+        [CodegenMakePublic]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RegisterObserversRpc(uint hash, ClientRpcDelegate del)
         {
-            if (_observersRpcDelegates.TryAdd(hash, del))
-                IncreaseRpcMethodCount();
+            if (_observersRpcDelegates.TryGetValueIL2CPP(hash, out ClientRpcDelegate currentDelegate))
+            {
+                FishNet.Managing.NetworkManager.StaticLogError($"ObserverRpc hash {hash} registered multiple times. First registration by {currentDelegate.Method.DeclaringType.GetType().FullName}. New registration by {GetType().FullName}.");
+            }
             else
-                NetworkManager.LogError($"ObserversRpc key {hash} has already been added for {GetType().FullName} on {gameObject.name}");
+            {
+                _observersRpcDelegates[hash] = del;
+                IncreaseRpcMethodCount();
+            }
         }
         /// <summary>
         /// Registers a RPC method.
@@ -119,14 +129,19 @@ namespace FishNet.Object
         /// <param name="hash"></param>
         /// <param name="del"></param>
         [APIExclude]
-        [MakePublic]
+        [CodegenMakePublic]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RegisterTargetRpc(uint hash, ClientRpcDelegate del)
         {
-            if (_targetRpcDelegates.TryAdd(hash, del))
-                    IncreaseRpcMethodCount();
+            if (_targetRpcDelegates.TryGetValueIL2CPP(hash, out ClientRpcDelegate currentDelegate))
+            {
+                FishNet.Managing.NetworkManager.StaticLogError($"TargetRpc hash {hash} registered multiple times. First registration by {currentDelegate.Method.DeclaringType.GetType().FullName}. New registration by {GetType().FullName}.");
+            }
             else
-                NetworkManager.LogError($"TargetRpc key {hash} has already been added for {GetType().FullName} on {gameObject.name}");
+            {
+                _targetRpcDelegates[hash] = del;
+                IncreaseRpcMethodCount();
+            }
         }
 
         /// <summary>
@@ -219,7 +234,7 @@ namespace FishNet.Object
         /// <param name="hash"></param>
         /// <param name="methodWriter"></param>
         /// <param name="channel"></param>
-        [MakePublic]
+        [CodegenMakePublic]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal void SendServerRpc(uint hash, PooledWriter methodWriter, Channel channel, DataOrderType orderType)
         {
@@ -240,7 +255,7 @@ namespace FishNet.Object
         /// <param name="methodWriter"></param>
         /// <param name="channel"></param>
         [APIExclude]
-        [MakePublic] //Make internal.
+        [CodegenMakePublic] //Make internal.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal void SendObserversRpc(uint hash, PooledWriter methodWriter, Channel channel, DataOrderType orderType, bool bufferLast, bool excludeServer, bool excludeOwner)
         {
@@ -269,7 +284,7 @@ namespace FishNet.Object
             {
                 if (_bufferedRpcs.TryGetValueIL2CPP(hash, out BufferedRpc result))
                     result.Writer.StoreLength();
-                _bufferedRpcs[hash] = new BufferedRpc(writer, orderType);
+                _bufferedRpcs[hash] = new BufferedRpc(writer, channel, orderType);
             }
             //If not buffered then dispose immediately.
             else
@@ -281,7 +296,7 @@ namespace FishNet.Object
         /// <summary>
         /// Sends a RPC to target.
         /// </summary>
-        [MakePublic] //Make internal.
+        [CodegenMakePublic] //Make internal.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal void SendTargetRpc(uint hash, PooledWriter methodWriter, Channel channel, DataOrderType orderType, NetworkConnection target, bool excludeServer, bool validateTarget = true)
         {
@@ -333,7 +348,7 @@ namespace FishNet.Object
         private void SetNetworkConnectionCache(bool addClientHost, bool addOwner)
         {
             _networkConnectionCache.Clear();
-            if (addClientHost && IsClientStarted)
+            if (addClientHost && IsClient)
                 _networkConnectionCache.Add(LocalConnection);
             if (addOwner && Owner.IsValid)
                 _networkConnectionCache.Add(Owner);

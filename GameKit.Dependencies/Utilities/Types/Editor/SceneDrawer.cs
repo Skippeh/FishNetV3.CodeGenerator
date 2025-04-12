@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.Types.Editing
+namespace GameKit.Utilities.Types.Editing
 {
     /* Source https://forum.unity.com/threads/how-to-link-scenes-in-the-inspector.383140/ */
 

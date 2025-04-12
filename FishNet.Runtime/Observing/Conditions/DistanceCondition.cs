@@ -2,6 +2,7 @@
 using FishNet.Object;
 using FishNet.Observing;
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -31,31 +32,24 @@ namespace FishNet.Component.Observing
         [Range(0f, 1f)]
         [SerializeField]
         private float _hideDistancePercent = 0.1f;
+        /// <summary>
+        /// How often this condition may change for a connection. This prevents objects from appearing and disappearing rapidly. A value of 0f will cause the object the update quickly as possible while any other value will be used as a delay.
+        /// </summary>
+        [Obsolete("UpdateFrequency is no longer used.")] //Remove on 2023/06/01
+        [HideInInspector]
+        public float UpdateFrequency;
         #endregion
 
         #region Private.
         /// <summary>
-        /// MaximumDistance squared for faster checks.
+        /// Tracks when connections may be updated for this object.
         /// </summary>
-        private float _sqrMaximumDistance;
-        /// <summary>
-        /// Distance to hide object at.
-        /// </summary>
-        private float _sqrHideMaximumDistance;
+        private Dictionary<NetworkConnection, float> _timedUpdates = new Dictionary<NetworkConnection, float>();
         #endregion
 
-        private void Awake()
+        public void ConditionConstructor(float maximumDistance)
         {
-            SetMaximumDistance(_maximumDistance);
-        }
-
-        private void SetMaximumDistance(float value)
-        {
-            _maximumDistance = value;
-            _sqrMaximumDistance = (_maximumDistance * _maximumDistance);
-
-            float maxDistanceHide = (_maximumDistance * (1f + _hideDistancePercent));
-            _sqrHideMaximumDistance = (maxDistanceHide * maxDistanceHide);
+            MaximumDistance = maximumDistance;
         }
 
         /// <summary>
@@ -70,7 +64,20 @@ namespace FishNet.Component.Observing
             //If here then checks are being processed.
             notProcessed = false;
 
-            float sqrMaximumDistance = (currentlyAdded) ? _sqrHideMaximumDistance : _sqrMaximumDistance;
+            float sqrMaximumDistance;
+            /* If already visible then use additional
+             * distance to determine when to hide. */
+            if (currentlyAdded)
+            {
+                float maxModified = (MaximumDistance * (1f + _hideDistancePercent));
+                sqrMaximumDistance = (maxModified * maxModified);
+            }
+            //Not visible, use normal distance.
+            else
+            {
+                sqrMaximumDistance = (MaximumDistance * MaximumDistance);
+            }
+
             Vector3 thisPosition = NetworkObject.transform.position;
             foreach (NetworkObject nob in connection.Objects)
             {
@@ -84,9 +91,20 @@ namespace FishNet.Component.Observing
         }
 
         /// <summary>
-        /// Type of condition this is. Certain types are handled different, such as Timed which are checked for changes at timed intervals.
+        /// How a condition is handled.
         /// </summary>
         /// <returns></returns>
         public override ObserverConditionType GetConditionType() => ObserverConditionType.Timed;
+
+        /// <summary>
+        /// Clones referenced ObserverCondition. This must be populated with your conditions settings.
+        /// </summary>
+        /// <returns></returns>
+        public override ObserverCondition Clone()
+        {
+            DistanceCondition copy = ScriptableObject.CreateInstance<DistanceCondition>();
+            copy.ConditionConstructor(MaximumDistance);
+            return copy;
+        }
     }
 }

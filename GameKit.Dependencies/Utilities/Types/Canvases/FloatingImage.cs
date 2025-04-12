@@ -2,7 +2,7 @@ using GameKit.Dependencies.Inspectors;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace GameKit.Dependencies.Utilities.Types.CanvasContainers
+namespace GameKit.Utilities.Types.CanvasContainers
 {
 
     public class FloatingImage : FloatingContainer

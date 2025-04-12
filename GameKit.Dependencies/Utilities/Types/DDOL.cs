@@ -1,13 +1,18 @@
 ﻿using System;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.Types
+namespace GameKit.Utilities.Types
 {
 
 
     public class DDOL : MonoBehaviour
     {
         #region Public.
+        /// <summary>
+        /// Singleton instance of this class.
+        /// </summary>
+        [Obsolete("Use GetDDOL().")] //Remove on 2023/06/01.
+        public static DDOL Instance => GetDDOL();
         /// <summary>
         /// Created instance of DDOL.
         /// </summary>
@@ -27,7 +32,7 @@ namespace GameKit.Dependencies.Utilities.Types
                 DDOL ddol = obj.AddComponent<DDOL>();
                 DontDestroyOnLoad(ddol);
                 _instance = ddol;
-                return ddol;
+                return ddol; 
             }
             //Already  made.
             else

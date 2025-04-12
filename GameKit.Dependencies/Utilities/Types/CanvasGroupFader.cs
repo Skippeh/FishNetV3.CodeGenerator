@@ -1,7 +1,7 @@
 using GameKit.Dependencies.Inspectors;
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities.Types
+namespace GameKit.Utilities.Types
 {
 
     public class CanvasGroupFader : MonoBehaviour

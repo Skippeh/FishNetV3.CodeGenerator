@@ -1,4 +1,4 @@
-﻿using GameKit.Dependencies.Utilities;
+﻿using GameKit.Utilities;
 using System;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
@@ -251,7 +251,7 @@ namespace FishNet.Managing.Scened
             }
 
             if (invalidFound)
-                NetworkManagerExtensions.LogWarning(INVALID_SCENE);
+                NetworkManager.StaticLogWarning(INVALID_SCENE);
 
             return result.ToArray();
         }
@@ -308,7 +308,7 @@ namespace FishNet.Managing.Scened
                     }
 
                     if (failingIndex != -1)
-                        NetworkManagerExtensions.LogWarning($"Data {item.ToString()} matches {result[failingIndex].ToString()} and has been removed from datas.");
+                        NetworkManager.StaticLogWarning($"Data {item.ToString()} matches {result[failingIndex].ToString()} and has been removed from datas.");
                     else
                         result.Add(item);
                 }
@@ -321,7 +321,7 @@ namespace FishNet.Managing.Scened
             SceneLookupData[] returnedValue;
             if (invalidFound)
             {
-                NetworkManagerExtensions.LogWarning(INVALID_SCENE);
+                NetworkManager.StaticLogWarning(INVALID_SCENE);
                 returnedValue = result.ToArray();
             }
             else
@@ -354,7 +354,7 @@ namespace FishNet.Managing.Scened
             }
 
             if (invalidFound)
-                NetworkManagerExtensions.LogWarning(INVALID_SCENE);
+                NetworkManager.StaticLogWarning(INVALID_SCENE);
 
             return result.ToArray();
         }
@@ -385,7 +385,7 @@ namespace FishNet.Managing.Scened
 
             if (Handle == 0 && string.IsNullOrEmpty(NameOnly))
             {
-                NetworkManagerExtensions.LogWarning("Scene handle and name is unset; scene cannot be returned.");
+                NetworkManager.StaticLogWarning("Scene handle and name is unset; scene cannot be returned.");
                 return default;
             }
 

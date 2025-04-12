@@ -1,7 +1,7 @@
 ﻿
 using UnityEngine;
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
 
     /// <summary>

@@ -104,28 +104,9 @@ namespace FishNet.Object
                     NetworkBehaviours[i].OnStopClient_Internal();
             }
 
-            /* Several conditions determine if OnStopNetwork can
-             * be called.
-             * 
-             * - If asServer and pending destroy from clientHost.
-             * - If !asServer and not ServerInitialized. */
-            bool callStopNetwork;
-            if (asServer)
-            {
-                if (!IsClientStarted)
-                    callStopNetwork = true;
-                else
-                    callStopNetwork = (ServerManager.Objects.GetFromPending(ObjectId) == null);
-            }
-            else
-            {
-                /* When not as server only perform OnStopNetwork if
-                 * not initialized for the server. The object could be
-                 * server initialized if it were spawned, despawned, then spawned again
-                 * before client ran this method. */
-                callStopNetwork = !IsServerInitialized;
-            }
-            if (callStopNetwork)
+            /* Invoke OnStopNetwork if server is calling
+            * or if client and not as server. */
+            if (asServer || (!asServer && !IsServer))
             {
                 for (int i = 0; i < NetworkBehaviours.Length; i++)
                     NetworkBehaviours[i].InvokeOnNetwork(false);
@@ -133,24 +114,15 @@ namespace FishNet.Object
         }
 
         /// <summary>
-        /// Invokes OnOwnership callbacks when ownership changes.
-        /// This is not to be called when assigning ownership during a spawn message.
+        /// Invokes OnOwnership callbacks.
         /// </summary>
-        private void InvokeOwnershipChange(NetworkConnection prevOwner, bool asServer)
+        /// <param name="prevOwner"></param>
+        private void InvokeOwnership(NetworkConnection prevOwner, bool asServer)
         {
             if (asServer)
             {
-#if PREDICTION_V2
-                ResetReplicateTick();
-#endif
                 for (int i = 0; i < NetworkBehaviours.Length; i++)
                     NetworkBehaviours[i].OnOwnershipServer_Internal(prevOwner);
-                //Also write owner syncTypes if there is an owner.
-                if (Owner.IsValid)
-                {
-                    for (int i = 0; i < NetworkBehaviours.Length; i++)
-                        NetworkBehaviours[i].WriteDirtySyncTypes(true, true, true);
-                }
             }
             else
             {
@@ -163,7 +135,7 @@ namespace FishNet.Object
                  * as owner client-side, which invokes the OnOwnership method.
                  * Then when the server approves the owner change it would invoke
                  * again, which is not needed. */
-                bool blockInvoke = ((IsOwner && !IsServerStarted) && (prevOwner == Owner));
+                bool blockInvoke = ((IsOwner && !IsServer) && (prevOwner == Owner));
                 if (!blockInvoke)
                 {
                     for (int i = 0; i < NetworkBehaviours.Length; i++)

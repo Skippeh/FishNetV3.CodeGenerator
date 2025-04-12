@@ -26,7 +26,7 @@ namespace FishNet.Managing.Utility
             PacketId pid = (PacketId)packetId;
             if (channel == Channel.Reliable ||
                 pid == PacketId.Broadcast ||
-                pid == PacketId.SyncType
+                pid == PacketId.SyncVar
                 )
             {
                 return reader.ReadInt32();
@@ -42,9 +42,19 @@ namespace FishNet.Managing.Utility
              * for a sanity check. */
             else
             {
-                reader.NetworkManager.LogError($"Operation is unhandled for packetId {(PacketId)packetId} on channel {channel}.");
+                LogError($"Operation is unhandled for packetId {(PacketId)packetId} on channel {channel}.");
                 return (int)MissingObjectPacketLength.PurgeRemaiming;
             }
+
+            //Logs an error message.
+            void LogError(string message)
+            {
+                if (reader.NetworkManager != null)
+                    reader.NetworkManager.LogError(message);
+                else
+                    NetworkManager.StaticLogError(message);
+            }
+
         }
 
     }

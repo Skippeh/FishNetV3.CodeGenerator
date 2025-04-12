@@ -22,7 +22,7 @@ using FishNet.Utility.Performance;
 using FishNet.Component.ColliderRollback;
 using FishNet.Managing.Predicting;
 using System.Runtime.CompilerServices;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 #if UNITY_EDITOR
 using FishNet.Editing.PrefabCollectionGenerator;
 #endif
@@ -78,8 +78,8 @@ namespace FishNet.Managing
         private static List<NetworkManager> _instances = new List<NetworkManager>();
         /// <summary>
         /// Currently initialized NetworkManagers.
-        /// </summary>
-        public static IReadOnlyList<NetworkManager> Instances
+        /// </summary> //Remove on 2024/01/01 Convert to IReadOnlyList.
+        public static IReadOnlyCollection<NetworkManager> Instances
         {
             get
             {
@@ -97,7 +97,31 @@ namespace FishNet.Managing
                 }
                 return _instances;
             }
-        }
+        }  
+        /// <summary>
+        /// True if server is started.
+        /// </summary>
+        public bool IsServer => ServerManager.Started;
+        /// <summary>
+        /// True if only the server is started.
+        /// </summary>
+        public bool IsServerOnly => (IsServer && !IsClient);
+        /// <summary>
+        /// True if the client is started and authenticated.
+        /// </summary>
+        public bool IsClient => (ClientManager.Started && ClientManager.Connection.Authenticated);
+        /// <summary>
+        /// True if only the client is started and authenticated.
+        /// </summary>
+        public bool IsClientOnly => (!IsServer && IsClient);
+        /// <summary>
+        /// True if client and server are started.
+        /// </summary>
+        public bool IsHost => (IsServer && IsClient);
+        /// <summary>
+        /// True if client nor server are started.
+        /// </summary>
+        public bool IsOffline => (!IsServer && !IsClient);
         /// <summary>
         /// PredictionManager for this NetworkManager.
         /// </summary>
@@ -126,6 +150,11 @@ namespace FishNet.Managing
         /// ObserverManager for this NetworkManager.
         /// </summary>
         public ObserverManager ObserverManager { get; private set; }
+        /// <summary>
+        /// Authenticator for this NetworkManager. May be null if no Authenticator is used.
+        /// </summary>
+        [Obsolete("Use ServerManager.GetAuthenticator or ServerManager.SetAuthenticator instead.")] //Remove on 2023/06/01
+        public Authenticator Authenticator => ServerManager.Authenticator;
         /// <summary>
         /// DebugManager for this NetworkManager.
         /// </summary>
@@ -238,7 +267,7 @@ namespace FishNet.Managing
                 return;
 
             if (TryGetComponent<NetworkObject>(out _))
-                InternalLogError($"NetworkObject component found on the NetworkManager object {gameObject.name}. This is not allowed and will cause problems. Remove the NetworkObject component from this object.");
+                LogError($"NetworkObject component found on the NetworkManager object {gameObject.name}. This is not allowed and will cause problems. Remove the NetworkObject component from this object.");
 
             SpawnablePrefabs.InitializePrefabRange(0);
             SpawnablePrefabs.SetCollectionId(0);
@@ -335,8 +364,6 @@ namespace FishNet.Managing
             * in awake. Rather than try to fix or care why Unity
             * does this just set it in LateUpdate(or Update). */
             SetRunInBackground();
-            //Let's object pooler do regular work.
-            _objectPool.LateUpdate();
         }
 
 
@@ -363,7 +390,7 @@ namespace FishNet.Managing
             //If to destroy the newest.
             if (_persistence == PersistenceType.DestroyNewest)
             {
-                InternalLog($"NetworkManager on object {gameObject.name} is being destroyed due to persistence type {_persistence}. A NetworkManager instance already exist on {firstInstance.name}.");
+                Log($"NetworkManager on object {gameObject.name} is being destroyed due to persistence type {_persistence}. A NetworkManager instance already exist on {firstInstance.name}.");
                 Destroy(gameObject);
                 //This one is being destroyed because its the newest.
                 return false;
@@ -371,7 +398,7 @@ namespace FishNet.Managing
             //If to destroy the oldest.
             else if (_persistence == PersistenceType.DestroyOldest)
             {
-                InternalLog($"NetworkManager on object {firstInstance.name} is being destroyed due to persistence type {_persistence}. A NetworkManager instance has been created on {gameObject.name}.");
+                Log($"NetworkManager on object {firstInstance.name} is being destroyed due to persistence type {_persistence}. A NetworkManager instance has been created on {gameObject.name}.");
                 Destroy(firstInstance.gameObject);
                 //This being the new one will persist, allow initialization.
                 return true;
@@ -379,7 +406,7 @@ namespace FishNet.Managing
             //Unhandled.
             else
             {
-                InternalLog($"Persistance type of {_persistence} is unhandled on {gameObject.name}. Initialization will not proceed.");
+                Log($"Persistance type of {_persistence} is unhandled on {gameObject.name}. Initialization will not proceed.");
                 return false;
             }
         }
@@ -479,6 +506,145 @@ namespace FishNet.Managing
 
             CollectionCaches<int>.Store(cache);
         }
+
+        #region Object pool.
+        /// <summary>
+        /// Returns an instantiated copy of prefab.
+        /// </summary>        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NetworkObject GetPooledInstantiated(NetworkObject prefab, bool asServer)
+        {
+            return GetPooledInstantiated(prefab, prefab.transform.position, prefab.transform.rotation, asServer);
+        }
+        /// <summary>
+        /// Returns an instantiated copy of prefab.
+        /// </summary>        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NetworkObject GetPooledInstantiated(NetworkObject prefab, Vector3 position, Quaternion rotation, bool asServer)
+        {
+            return GetPooledInstantiated(prefab.PrefabId, prefab.SpawnableCollectionId, position, rotation, asServer);
+        }
+        /// <summary>
+        /// Returns an instantiated copy of prefab.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use GetPooledInstantiated(NetworkObject,bool).")] //Remove on 2024/01/01.
+        public NetworkObject GetPooledInstantiated(NetworkObject prefab, ushort collectionId, bool asServer)
+        {
+            return GetPooledInstantiated(prefab.PrefabId, collectionId, asServer);
+        }
+        /// <summary>
+        /// Returns an instantiated copy of prefab.
+        /// </summary>       
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NetworkObject GetPooledInstantiated(GameObject prefab, bool asServer)
+        {
+            NetworkObject nob;
+            if (!prefab.TryGetComponent<NetworkObject>(out nob))
+            {
+                LogError($"NetworkObject was not found on {prefab}. An instantiated NetworkObject cannot be returned.");
+                return null;
+            }
+            else
+            {
+                return GetPooledInstantiated(nob.PrefabId, nob.SpawnableCollectionId, asServer);
+            }
+        }
+        /// <summary>
+        /// Returns an instantiated copy of prefab.
+        /// </summary>
+        [Obsolete("Use GetPooledInstantiated(GameObject, bool).")] //Remove on 2024/01/01.
+        public NetworkObject GetPooledInstantiated(GameObject prefab, ushort collectionId, bool asServer)
+        {
+            return GetPooledInstantiated(prefab, asServer);
+        }
+        /// <summary>
+        /// Returns an instantiated copy of prefab while setting position and rotation.
+        /// </summary>
+        public NetworkObject GetPooledInstantiated(GameObject prefab, Vector3 position, Quaternion rotation, bool asServer)
+        {
+            NetworkObject nob;
+            if (!prefab.TryGetComponent<NetworkObject>(out nob))
+            {
+                LogError($"NetworkObject was not found on {prefab}. An instantiated NetworkObject cannot be returned.");
+                return null;
+            }
+            else
+            {
+                return GetPooledInstantiated(nob.PrefabId, nob.SpawnableCollectionId, position, rotation, asServer);
+            }
+        }
+        /// <summary>
+        /// Returns an instantiated object that has prefabId.
+        /// </summary>
+        [Obsolete("Use GetPooledInstantiated(int, ushort, bool).")] //Remove on 2024/01/01.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NetworkObject GetPooledInstantiated(int prefabId, bool asServer)
+        {
+            return GetPooledInstantiated(prefabId, 0, asServer);
+        }
+        /// <summary>
+        /// Returns an instantiated object that has prefabId.
+        /// </summary>
+        public NetworkObject GetPooledInstantiated(int prefabId, ushort collectionId, bool asServer)
+        {
+            return _objectPool.RetrieveObject(prefabId, collectionId, asServer);
+        }
+        /// <summary>
+        /// Returns an instantiated object that has prefabId while setting position and rotation.
+        /// </summary>
+        public NetworkObject GetPooledInstantiated(int prefabId, ushort collectionId, Vector3 position, Quaternion rotation, bool asServer)
+        {
+            return _objectPool.RetrieveObject(prefabId, collectionId, position, rotation, asServer);
+        }
+        /// <summary>
+        /// Stores an instantiated object.
+        /// </summary>
+        /// <param name="instantiated">Object which was instantiated.</param>
+        /// <param name="prefabId"></param>
+        /// <param name="asServer">True to store for the server.</param>
+        [Obsolete("Use StorePooledInstantiated(NetworkObject, bool)")] //Remove on 2023/06/01.
+        public void StorePooledInstantiated(NetworkObject instantiated, int prefabId, bool asServer)
+        {
+            StorePooledInstantiated(instantiated, asServer);
+        }
+        /// <summary>
+        /// Stores an instantied object.
+        /// </summary>
+        /// <param name="instantiated">Object which was instantiated.</param>
+        /// <param name="asServer">True to store for the server.</param>
+        public void StorePooledInstantiated(NetworkObject instantiated, bool asServer)
+        {
+            /* Should not be pooling an object which
+             * has not been despawned yet. */
+            if (instantiated.IsSpawned)
+            {
+                LogWarning($"NetworkObject {instantiated.ToString()} cannot be stored because it is still spawned. The object will be destroyed instead.");
+                Destroy(instantiated);
+                return;
+            }
+            /* Nested networkObjects cannot be stored
+             * because they are a part of their parent nob.
+             * The parent must be stored instead. */
+            else if (instantiated.IsNested)
+            {
+                Log($"NetworkObject {instantiated.ToString()} cannot be stored because it is a nested prefab.");
+                return;
+            }
+
+            _objectPool.StoreObject(instantiated, asServer);
+        }
+        /// <summary>
+        /// Instantiates a number of objects and adds them to the pool.
+        /// </summary>
+        /// <param name="prefab">Prefab to cache.</param>
+        /// <param name="count">Quantity to spawn.</param>
+        /// <param name="asServer">True if storing prefabs for the server collection. This is only applicable when using DualPrefabObjects.</param>
+        public void CacheObjects(NetworkObject prefab, int count, bool asServer)
+        {
+            _objectPool.CacheObjects(prefab, count, asServer);
+        }
+        #endregion
 
         #region Editor.
 #if UNITY_EDITOR

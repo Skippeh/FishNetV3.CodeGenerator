@@ -109,19 +109,11 @@ namespace FishNet.Managing.Transporting
         /// <summary>
         /// Lowest MTU of all transports for channels.
         /// </summary>
-        private int[] _lowestMtus;
-        /// <summary>
-        /// Lowest MTU of all transports of all channels.
-        /// </summary>
-        private int _lowestMtu = 0;
+        private int[] _lowestMtu;
         /// <summary>
         /// Used to cache NetworkConnections.
         /// </summary>
         private HashSet<NetworkConnection> _networkConnectionHashSet = new HashSet<NetworkConnection>();
-        /// <summary>
-        /// Custom amount to reserve on the MTU.
-        /// </summary>
-        private int _customMtuReserve = MINIMUM_MTU_RESERVE;
         #endregion
 
         #region Consts.
@@ -147,21 +139,12 @@ namespace FishNet.Managing.Transporting
         private const byte SPLIT_COUNT_BYTES = 4;
         /// <summary>
         /// Number of bytes required for split data. 
-        /// </summary> //todo: This shouldn't have to include TickBytes but there is a parse error if it's not included. Figure out why.
-        public const byte SPLIT_INDICATOR_SIZE = (TICK_BYTES + PACKET_ID_BYTES + SPLIT_COUNT_BYTES);
+        /// </summary>
+        public const byte SPLIT_INDICATOR_SIZE = (PACKET_ID_BYTES + SPLIT_COUNT_BYTES);
         /// <summary>
         /// Number of channels supported.
         /// </summary>
         public const byte CHANNEL_COUNT = 2;
-        /// <summary>
-        /// MTU reserved for internal use.
-        /// 1 byte is used to specify channel in packets for transports that do not include channel within their packet header. This is transport dependent.
-        /// </summary>
-        public const int MINIMUM_MTU_RESERVE = 1;
-        /// <summary>
-        /// Value to use when a MTU could not be found.
-        /// </summary>
-        public const int INVALID_MTU = -1;
         #endregion
 
         /// <summary>
@@ -170,9 +153,17 @@ namespace FishNet.Managing.Transporting
         internal void InitializeOnce_Internal(NetworkManager manager)
         {
             _networkManager = manager;
-            TryAddDefaultTransport();
+            /* If transport isn't specified then add default
+             * transport. */
+            if (Transport == null && !gameObject.TryGetComponent<Transport>(out Transport))
+                Transport = gameObject.AddComponent<FishNet.Transporting.Tugboat.Tugboat>();
+
             Transport.Initialize(_networkManager, 0);
-            SetLowestMTUs();
+            //Cache lowest Mtus.
+            _lowestMtu = new int[CHANNEL_COUNT];
+            for (byte i = 0; i < CHANNEL_COUNT; i++)
+                _lowestMtu[i] = GetLowestMTU(i);
+
             InitializeToServerBundles();
             if (_intermediateLayer != null)
                 _intermediateLayer.InitializeOnce(this);
@@ -181,53 +172,6 @@ namespace FishNet.Managing.Transporting
 #endif
         }
 
-        /// <summary>
-        /// Sets the lowest MTU values.
-        /// </summary>
-        private void SetLowestMTUs()
-        {
-            //Already set.
-            if (_lowestMtu != 0)
-                return;
-
-            /* At least one transport is required. 
-             * Try to add default. If a transport is already
-             * specified the add method will just exit early. */
-            TryAddDefaultTransport();
-
-            int allLowest = int.MaxValue;
-            //Cache lowest Mtus.
-            _lowestMtus = new int[CHANNEL_COUNT];
-            for (byte i = 0; i < CHANNEL_COUNT; i++)
-            {
-                int channelLowest = int.MaxValue;
-                if (Transport is Multipass mp)
-                {
-                    foreach (Transport t in mp.Transports)
-                    {
-                        int mtu = t.GetMTU(i);
-                        if (mtu != INVALID_MTU)
-                            channelLowest = Mathf.Min(channelLowest, mtu);
-                    }
-                }
-                else
-                {
-                    channelLowest = Transport.GetMTU(i);
-                }
-
-                _lowestMtus[i] = channelLowest;
-                _lowestMtu = Mathf.Min(allLowest, channelLowest);
-            }
-        }
-
-        /// <summary>
-        /// Adds the default transport if a transport is not yet specified.
-        /// </summary>
-        private void TryAddDefaultTransport()
-        {
-            if (Transport == null && !gameObject.TryGetComponent<Transport>(out Transport))
-                Transport = gameObject.AddComponent<FishNet.Transporting.Tugboat.Tugboat>();
-        }
 
         ///// <summary>
         ///// Gets port for the first transport, or client transport if using Multipass.
@@ -325,62 +269,9 @@ namespace FishNet.Managing.Transporting
         }
 
         #region GetMTU.
-        /// <summary>
-        /// Returns MTU excluding reserve amount.
-        /// </summary> 
-        private int GetMTUWithReserve(int mtu)
-        {
-            int value = (mtu - MINIMUM_MTU_RESERVE - _customMtuReserve);
-            /* If MTU is extremely low then warn user.
-             * The number choosen has no significant value. */
-            if (value <= 100)
-            {
-                string msg = $"Available MTU of {mtu} is significantly low; an invalid MTU will be returned. Check transport settings, or reduce MTU reserve if you set one using {nameof(TransportManager.SetMTUReserve)}";
-                _networkManager.LogWarning(msg);
-
-                return INVALID_MTU;
-            }
-
-            return value;
-        }
-        /// <summary>
-        /// Sets a custom value to reserve for the internal buffers.
-        /// This value is also deducted from transport MTU when using GetMTU methods.
-        /// </summary>
-        /// <param name="value">Value to use.</param>
-        public void SetMTUReserve(int value)
-        {
-            if (_networkManager != null && _networkManager.IsClientStarted || _networkManager.IsServerStarted)
-            {
-                _networkManager.LogError($"A custom MTU reserve cannot be set after the server or client have been started or connected.");
-                return;
-            }
-
-            if (value < MINIMUM_MTU_RESERVE)
-            {
-                _networkManager.Log($"MTU reserve {value} is below minimum value of {MINIMUM_MTU_RESERVE}. Value has been updated to {MINIMUM_MTU_RESERVE}.");
-                value = MINIMUM_MTU_RESERVE;
-            }
-
-            _customMtuReserve = value;
-            InitializeToServerBundles();
-        }
-        /// <summary>
-        /// Returns the current MTU reserve.
-        /// </summary>
-        /// <returns></returns>
-        public int GetMTUReserve() => _customMtuReserve;
-        /// <summary>
-        /// Returns the lowest MTU of all channels. When using multipass this will evaluate all transports within Multipass.
-        /// </summary>
-        /// <param name="channel"></param>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetLowestMTU()
-        {
-            SetLowestMTUs();
-            return GetMTUWithReserve(_lowestMtu);
-        }
+        /* Returned MTUs are always -1 to allow an extra byte
+         * to specify channel where certain transports do
+         * not allow or provide channel information. */
         /// <summary>
         /// Returns the lowest MTU for a channel. When using multipass this will evaluate all transports within Multipass.
         /// </summary>
@@ -389,8 +280,37 @@ namespace FishNet.Managing.Transporting
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetLowestMTU(byte channel)
         {
-            SetLowestMTUs();
-            return GetMTUWithReserve(_lowestMtus[channel]);
+            //Use cached if available.
+            if (_lowestMtu[channel] > 0)
+                return _lowestMtu[channel];
+
+            if (Transport is Multipass mp)
+            {
+                int? lowestMtu = null;
+                foreach (Transport t in mp.Transports)
+                {
+                    int thisMtu = t.GetMTU(channel);
+                    if (lowestMtu == null || thisMtu < lowestMtu.Value)
+                        lowestMtu = thisMtu;
+                }
+
+                //If lowest was not changed return unset.
+                if (lowestMtu == null)
+                {
+                    return -1;
+                }
+                else
+                {
+                    int mtu = lowestMtu.Value;
+                    if (mtu >= 0)
+                        mtu -= 1;
+                    return mtu;
+                }
+            }
+            else
+            {
+                return GetMTU(channel);
+            }
         }
         /// <summary>
         /// Gets MTU on the current transport for channel.
@@ -399,12 +319,10 @@ namespace FishNet.Managing.Transporting
         /// <returns></returns>
         public int GetMTU(byte channel)
         {
-            SetLowestMTUs();
             int mtu = Transport.GetMTU(channel);
-            if (mtu == INVALID_MTU)
-                return mtu;
-
-            return GetMTUWithReserve(mtu);
+            if (mtu >= 0)
+                mtu -= 1;
+            return mtu;
         }
         /// <summary>
         /// Gets MTU on the transportIndex for channel. This requires use of Multipass.
@@ -418,10 +336,9 @@ namespace FishNet.Managing.Transporting
             if (Transport is Multipass mp)
             {
                 int mtu = mp.GetMTU(channel, transportIndex);
-                if (mtu == INVALID_MTU)
-                    return INVALID_MTU;
-
-                return GetMTUWithReserve(mtu);
+                if (mtu >= 0)
+                    mtu -= 1;
+                return mtu;
             }
             //Using first/only transport.
             else if (transportIndex == 0)
@@ -448,14 +365,13 @@ namespace FishNet.Managing.Transporting
             if (transport != null)
             {
                 int mtu = transport.GetMTU(channel);
-                if (mtu == INVALID_MTU)
-                    return mtu;
-
-                return GetMTUWithReserve(mtu);
+                if (mtu >= 0)
+                    mtu -= 1;
+                return mtu;
             }
 
             //Fall through.
-            return INVALID_MTU;
+            return -1;
         }
         #endregion
 
@@ -486,8 +402,10 @@ namespace FishNet.Managing.Transporting
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void SendToClient(byte channelId, ArraySegment<byte> segment, NetworkConnection connection, bool splitLargeMessages = true, DataOrderType orderType = DataOrderType.Default)
         {
-            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredMessages, out int maxSplitMessageSize);
-            SendToClient(channelId, segment, connection, requiredMessages, maxSplitMessageSize, orderType);
+            if (HasIntermediateLayer)
+                segment = ProcessIntermediateOutgoing(segment, false);
+            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredSplitMessages, out int maxSplitMessageSize);
+            SendToClient(channelId, segment, connection, requiredSplitMessages, maxSplitMessageSize, orderType);
         }
 
         private void SendToClient(byte channelId, ArraySegment<byte> segment, NetworkConnection connection, int requiredSplitMessages, int maxSplitMessageSize, DataOrderType orderType = DataOrderType.Default)
@@ -517,8 +435,10 @@ namespace FishNet.Managing.Transporting
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void SendToClients(byte channelId, ArraySegment<byte> segment, HashSet<NetworkConnection> observers, HashSet<NetworkConnection> excludedConnections = null, bool splitLargeMessages = true, DataOrderType orderType = DataOrderType.Default)
         {
-            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredMessages, out int maxSplitMessageSize);
-            SendToClients(channelId, segment, observers, excludedConnections, requiredMessages, maxSplitMessageSize, orderType);
+            if (HasIntermediateLayer)
+                segment = ProcessIntermediateOutgoing(segment, false);
+            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredSplitMessages, out int maxSplitMessageSize);
+            SendToClients(channelId, segment, observers, excludedConnections, requiredSplitMessages, maxSplitMessageSize, orderType);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SendToClients(byte channelId, ArraySegment<byte> segment, HashSet<NetworkConnection> observers, HashSet<NetworkConnection> excludedConnections, int requiredSplitMessages, int maxSplitMessageSize, DataOrderType orderType = DataOrderType.Default)
@@ -548,8 +468,10 @@ namespace FishNet.Managing.Transporting
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void SendToClients(byte channelId, ArraySegment<byte> segment, bool splitLargeMessages = true)
         {
-            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredMessages, out int maxSplitMessageSize);
-            SendToClients_Internal(channelId, segment, requiredMessages, maxSplitMessageSize);
+            if (HasIntermediateLayer)
+                segment = ProcessIntermediateOutgoing(segment, false);
+            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredSplitMessages, out int maxSplitMessageSize);
+            SendToClients_Internal(channelId, segment, requiredSplitMessages, maxSplitMessageSize);
         }
         private void SendToClients_Internal(byte channelId, ArraySegment<byte> segment, int requiredSplitMessages, int maxSplitMessageSize)
         {
@@ -570,17 +492,19 @@ namespace FishNet.Managing.Transporting
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void SendToServer(byte channelId, ArraySegment<byte> segment, bool splitLargeMessages = true, DataOrderType orderType = DataOrderType.Default)
         {
-            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredMessages, out int maxSplitMessageSize);
-            SendToServer(channelId, segment, requiredMessages, maxSplitMessageSize, orderType);
+            if (HasIntermediateLayer)
+                segment = ProcessIntermediateOutgoing(segment, true);
+            SetSplitValues(channelId, segment, splitLargeMessages, out int requiredSplitMessages, out int maxSplitMessageSize);
+            SendToServer(channelId, segment, requiredSplitMessages, maxSplitMessageSize, orderType);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SendToServer(byte channelId, ArraySegment<byte> segment, int requiredMessages, int maxSplitMessageSize, DataOrderType orderType)
+        private void SendToServer(byte channelId, ArraySegment<byte> segment, int requiredSplitMessages, int maxSplitMessageSize, DataOrderType orderType)
         {
             if (channelId >= _toServerBundles.Count)
                 channelId = (byte)Channel.Reliable;
 
-            if (requiredMessages > 1)
-                SendSplitData(null, ref segment, requiredMessages, maxSplitMessageSize, orderType);
+            if (requiredSplitMessages > 1)
+                SendSplitData(null, ref segment, requiredSplitMessages, maxSplitMessageSize, orderType);
             else
                 _toServerBundles[channelId].Write(segment, false, orderType);
         }
@@ -589,16 +513,16 @@ namespace FishNet.Managing.Transporting
         /// <summary>
         /// Checks if a message can be split and outputs split information if so.
         /// </summary>
-        private void SetSplitValues(byte channelId, ArraySegment<byte> segment, bool split, out int requiredMessages, out int maxSplitMessageSize)
+        private void SetSplitValues(byte channelId, ArraySegment<byte> segment, bool split, out int requiredSplitMessages, out int maxSplitMessageSize)
         {
             if (!split)
             {
-                requiredMessages = 0;
+                requiredSplitMessages = 0;
                 maxSplitMessageSize = 0;
             }
             else
             {
-                SplitRequired(channelId, segment.Count, out requiredMessages, out maxSplitMessageSize);
+                SplitRequired(channelId, segment.Count, out requiredSplitMessages, out maxSplitMessageSize);
             }
         }
 
@@ -621,7 +545,7 @@ namespace FishNet.Managing.Transporting
         /// </summary>
         private int GetRequiredMessageCount(byte channelId, int segmentSize, out int maxMessageSize)
         {
-            maxMessageSize = GetLowestMTU(channelId) - SPLIT_INDICATOR_SIZE;
+            maxMessageSize = GetLowestMTU(channelId) - (TransportManager.TICK_BYTES + SPLIT_INDICATOR_SIZE);
             return Mathf.CeilToInt((float)segmentSize / maxMessageSize);
         }
 
@@ -754,8 +678,6 @@ namespace FishNet.Managing.Transporting
                                     if (ppb.GetBuffer(i, out ByteBuffer bb))
                                     {
                                         ArraySegment<byte> segment = new ArraySegment<byte>(bb.Data, 0, bb.Length);
-                                        if (HasIntermediateLayer)
-                                            segment = ProcessIntermediateOutgoing(segment, false);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                                         if (latencySimulatorEnabled)
                                             _latencySimulator.AddOutgoing(channel, segment, false, conn.ClientId);
@@ -827,8 +749,6 @@ namespace FishNet.Managing.Transporting
                                 if (ppb.GetBuffer(i, out ByteBuffer bb))
                                 {
                                     ArraySegment<byte> segment = new ArraySegment<byte>(bb.Data, 0, bb.Length);
-                                    if (HasIntermediateLayer)
-                                        segment = ProcessIntermediateOutgoing(segment, true);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                                     if (latencySimulatorEnabled)
                                         _latencySimulator.AddOutgoing(channel, segment);

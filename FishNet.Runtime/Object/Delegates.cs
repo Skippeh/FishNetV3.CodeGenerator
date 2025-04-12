@@ -1,7 +1,7 @@
 ﻿using FishNet.Connection;
 using FishNet.Serializing;
 using FishNet.Transporting;
-using FishNet.Utility;
+using FishNet.Utility.Constant;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo(UtilityConstants.CODEGEN_ASSEMBLY_NAME)]

@@ -21,5 +21,11 @@ namespace FishNet.Component.Observing
         /// </summary>
         /// <returns></returns>
         public override ObserverConditionType GetConditionType() => ObserverConditionType.Normal;
+
+        public override ObserverCondition Clone()
+        {
+            HostOnlyCondition copy = ScriptableObject.CreateInstance<HostOnlyCondition>();
+            return copy;
+        }
     }
 }

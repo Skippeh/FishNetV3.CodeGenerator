@@ -8,7 +8,7 @@ using FishNet.Managing.Statistic;
 using FishNet.Managing.Timing;
 using FishNet.Managing.Transporting;
 using FishNet.Utility;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System;
 using System.Linq;
 using UnityEngine;
@@ -148,43 +148,30 @@ namespace FishNet
             }
         }
 
-        #region Obsoletes
-        [Obsolete("Use IsClientOnlyStarted. Note the difference between IsClientOnlyInitialized and IsClientOnlyStarted.")]
-        public static bool IsClientOnly => IsClientOnlyStarted;
-        [Obsolete("Use IsServerOnlyStarted. Note the difference between IsServerOnlyInitialized and IsServerOnlyStarted.")]
-        public static bool IsServerOnly => IsServerOnlyStarted;
-        [Obsolete("Use IsHostStarted. Note the difference between IsHostInitialized and IsHostStarted.")]
-        public static bool IsHost => IsHostStarted;
-        [Obsolete("Use IsClientStarted. Note the difference between IsClientInitialized and IsClientStarted.")]
-        public static bool IsClient => IsClientStarted;
-        [Obsolete("Use IsServerStarted. Note the difference between IsServerInitialized and IsServerStarted.")]
-        public static bool IsServer => IsServerStarted;
-        #endregion
-
         /// <summary>
-        /// True if the server is active.
+        /// True if the server is started.
         /// </summary>
-        public static bool IsServerStarted => (NetworkManager == null) ? false : NetworkManager.IsServerStarted;
+        public static bool IsServer => (NetworkManager == null) ? false : NetworkManager.IsServer;
         /// <summary>
         /// True if only the server is started.
         /// </summary>
-        public static bool IsServerOnlyStarted => (NetworkManager == null) ? false : NetworkManager.IsServerOnlyStarted;
+        public static bool IsServerOnly => (NetworkManager == null) ? false : NetworkManager.IsServerOnly;
         /// <summary>
         /// True if the client is started and authenticated.
         /// </summary>
-        public static bool IsClientStarted => (NetworkManager == null) ? false : NetworkManager.IsClientStarted;
+        public static bool IsClient => (NetworkManager == null) ? false : NetworkManager.IsClient;
         /// <summary>
         /// True if only the client is started and authenticated.
         /// </summary>
-        public static bool IsClientOnlyStarted => (NetworkManager == null) ? false : NetworkManager.IsClientOnlyStarted;
+        public static bool IsClientOnly => (NetworkManager == null) ? false : NetworkManager.IsClientOnly;
         /// <summary>
         /// True if client and server are started.
         /// </summary>
-        public static bool IsHostStarted => (NetworkManager == null) ? false : NetworkManager.IsHostStarted;
+        public static bool IsHost => (NetworkManager == null) ? false : NetworkManager.IsHost;
         /// <summary>
         /// True if client nor server are started.
         /// </summary>
-        public static bool IsOffline => (_networkManager == null) ? true : (!NetworkManager.IsServerStarted && !NetworkManager.IsClientStarted);
+        public static bool IsOffline => (_networkManager == null) ? true : (!NetworkManager.IsServer && !NetworkManager.IsClient);
         #endregion
 
         #region Private.

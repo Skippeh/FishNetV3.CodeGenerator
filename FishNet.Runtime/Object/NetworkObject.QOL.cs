@@ -17,18 +17,6 @@ namespace FishNet.Object
     public partial class NetworkObject : MonoBehaviour
     {
         #region Public.
-        #region Obsoletes
-        [Obsolete("Use IsClientOnlyInitialized. Note the difference between IsClientOnlyInitialized and IsClientOnlyStarted.")]
-        public bool IsClientOnly => IsClientOnlyInitialized;
-        [Obsolete("Use IsServerOnlyInitialized. Note the difference between IsServerOnlyInitialized and IsServerOnlyStarted.")]
-        public bool IsServerOnly => IsServerOnlyInitialized;
-        [Obsolete("Use IsHostInitialized. Note the difference between IsHostInitialized and IsHostStarted.")]
-        public bool IsHost => IsHostInitialized;
-        [Obsolete("Use IsClientInitialized. Note the difference between IsClientInitialized and IsClientStarted.")]
-        public bool IsClient => IsClientInitialized;
-        [Obsolete("Use IsServerInitialized. Note the difference between IsServerInitialized and IsServerStarted.")]
-        public bool IsServer => IsServerInitialized;
-        #endregion
         /// <summary>
         /// True if predicted spawning is allowed for this object.
         /// </summary>
@@ -38,61 +26,47 @@ namespace FishNet.Object
         /// </summary>
         internal bool AllowPredictedDespawning => (PredictedSpawn == null) ? false : PredictedSpawn.GetAllowDespawning();
         /// <summary>
+        /// True to allow clients to predicted set syncTypes prior to spawning the item. Set values will be applied on the server and sent to other clients.
+        /// </summary>
+        internal bool AllowPredictedSyncTypes => (PredictedSpawn == null) ? false : PredictedSpawn.GetAllowSyncTypes();
+        /// <summary>
         /// True if this object has been initialized on the client side.
         /// This is set true right before client start callbacks and after stop callbacks.
         /// </summary>
         public bool IsClientInitialized { get; private set; }
+        [Obsolete("Use IsClientInitialized.")]
+        public bool ClientInitialized => IsClientInitialized;
         /// <summary>
         /// True if the client is started and authenticated. This will return true on clientHost even if the object has not initialized yet for the client.
         /// To check if this object has been initialized for the client use IsClientInitialized.
         /// </summary>
-        public bool IsClientStarted => (NetworkManager == null) ? false : NetworkManager.IsClientStarted;
-        /// <summary>
-        /// True if this object has been initialized only on the server side.
-        /// This is set true right before server start callbacks and after stop callbacks.
-        /// </summary>
-        public bool IsClientOnlyInitialized => (!IsServerInitialized && IsClientInitialized);
+        public bool IsClient => (NetworkManager == null) ? false : NetworkManager.IsClient;
         /// <summary>
         /// True if only the client is started and authenticated.
         /// </summary>
-        public bool IsClientOnlyStarted => (IsClientStarted && !IsServerStarted);
+        public bool IsClientOnly => (IsClient && !IsServer);
         /// <summary>
         /// True if this object has been initialized on the server side.
         /// This is set true right before server start callbacks and after stop callbacks.
         /// </summary>
         public bool IsServerInitialized { get; private set; }
         /// <summary>
-        /// True if the server is active. This will return true on clientHost even if the object is being deinitialized on the server.
+        /// True if the server is  started. This will return true on clientHost even if the object is being deinitialized on the server.
         /// To check if this object has been initialized for the server use IsServerInitialized.
         /// </summary>
-        public bool IsServerStarted => (NetworkManager == null) ? false : NetworkManager.IsServerStarted;
-        /// <summary>
-        /// True if this object has been initialized only on the server side.
-        /// This is set true right before server start callbacks and after stop callbacks.
-        /// </summary>
-        public bool IsServerOnlyInitialized => (IsServerInitialized && !IsClientInitialized);
+        public bool IsServer => (NetworkManager == null) ? false : NetworkManager.IsServer;
         /// <summary>
         /// True if only the server is started.
         /// </summary>
-        public bool IsServerOnlyStarted => (IsServerStarted && !IsClientStarted);
+        public bool IsServerOnly => (IsServer && !IsClient);
         /// <summary>
         /// True if client and server are started.
         /// </summary>
-        public bool IsHostStarted => (IsClientStarted && IsServerStarted);
-        /// <summary>
-        /// True if this object has been initialized on the server and client side.
-        /// </summary>
-        public bool IsHostInitialized => (IsClientInitialized && IsServerInitialized);
+        public bool IsHost => (IsClient && IsServer);
         /// <summary>
         /// True if client nor server are started.
         /// </summary>
-        public bool IsOffline => (!IsClientStarted && !IsServerStarted);
-#if PREDICTION_V2
-        /// <summary>
-        /// True if a reconcile is occuring on the PredictionManager. Note the difference between this and IsBehaviourReconciling.
-        /// </summary>
-        public bool IsManagerReconciling => PredictionManager.IsReconciling;
-#endif
+        public bool IsOffline => (!IsClient && !IsServer);
         /// <summary>
         /// True if the local client is the owner of this object.
         /// This will only return true if IsClientInitialized is also true. You may check ownership status regardless of client initialized state by using Owner.IsLocalClient.
@@ -213,7 +187,11 @@ namespace FishNet.Object
                 if (error)
                 {
                     string message = $"ComponentIndex of {componentIndex} is out of bounds on {gameObject.name} [id {ObjectId}]. This may occur if you have modified your gameObject/prefab without saving it, or the scene.";
-                    NetworkManager.LogError(message);
+                    if (NetworkManager == null)
+                        NetworkManager.StaticLogError(message);
+                    else
+                        NetworkManager.LogError(message);
+
                 }
             }
 
@@ -275,9 +253,9 @@ namespace FishNet.Object
             count = NetworkBehaviours.Length;
             for (int i = 0; i < count; i++)
                 NetworkBehaviours[i].OnOwnershipClient_Internal(prevOwner);
-            count = NestedRootNetworkBehaviours.Count;
+            count = ChildNetworkObjects.Count;
             for (int i = 0; i < count; i++)
-                NestedRootNetworkBehaviours[i].SetLocalOwnership(caller);
+                ChildNetworkObjects[i].SetLocalOwnership(caller);
         }
 
         #region Registered components

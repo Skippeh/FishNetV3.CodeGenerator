@@ -1,5 +1,5 @@
 
-namespace GameKit.Dependencies.Utilities
+namespace GameKit.Utilities
 {
     public static class Booleans
     {

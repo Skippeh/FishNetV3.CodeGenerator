@@ -2,7 +2,7 @@ using FishNet.Documenting;
 using FishNet.Object.Helping;
 using System.Collections.Generic;
 using UnityEngine;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 #if UNITY_EDITOR
 using FishNet.Editing;
 using UnityEditor;
