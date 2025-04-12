@@ -7,6 +7,7 @@ using FishNet.Serializing.Helping;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace FishNet.CodeGenerating.Processing
 {
@@ -36,7 +37,7 @@ namespace FishNet.CodeGenerating.Processing
                 ExtensionType extensionType = GetExtensionType(methodDef);
                 if (extensionType == ExtensionType.None)
                     continue;
-                if (base.GetClass<GeneralHelper>().HasNotSerializableAttribute(methodDef))
+                if (base.GetClass<GeneralHelper>().CodegenExclude(methodDef))
                     continue;
 
                 MethodReference methodRef = base.ImportReference(methodDef);
@@ -74,7 +75,7 @@ namespace FishNet.CodeGenerating.Processing
                 ExtensionType extensionType = GetExtensionType(methodDef);
                 if (extensionType == ExtensionType.None)
                     continue;
-                if (base.GetClass<GeneralHelper>().HasNotSerializableAttribute(methodDef))
+                if (base.GetClass<GeneralHelper>().CodegenExclude(methodDef))
                     continue;
 
                 declaredMethods.Add((methodDef, extensionType));
@@ -115,7 +116,7 @@ namespace FishNet.CodeGenerating.Processing
              * isn't made for a type when the user has already made a declared one. */
             foreach (MethodDefinition methodDef in typeDef.Methods)
             {
-                if (gh.HasNotSerializableAttribute(methodDef))
+                if (gh.CodegenExclude(methodDef))
                     continue;
                 if (!methodDef.HasCustomAttribute<CustomComparerAttribute>())
                     continue;
@@ -224,12 +225,6 @@ namespace FishNet.CodeGenerating.Processing
         /// </summary>
         private void CreateReaderOrWriter(ExtensionType extensionType, MethodDefinition methodDef, ref int instructionIndex, TypeReference parameterType)
         {
-            ReaderProcessor rp = base.GetClass<ReaderProcessor>();
-            WriterProcessor wp = base.GetClass<WriterProcessor>();
-            ////If parameterType has user declared do nothing.
-            //if (wp.IsGlobalSerializer(parameterType))
-            //    return;
-
             if (!parameterType.IsGenericParameter && parameterType.CanBeResolved(base.Session))
             {
                 TypeDefinition typeDefinition = parameterType.CachedResolve(base.Session);
@@ -249,8 +244,8 @@ namespace FishNet.CodeGenerating.Processing
 
                 //Find already existing read or write method.
                 MethodReference createdMethodRef = (extensionType == ExtensionType.Write) ?
-                    wp.GetWriteMethodReference(parameterType) :
-                    rp.GetReadMethodReference(parameterType);
+                    base.GetClass<WriterProcessor>().GetWriteMethodReference(parameterType) :
+                    base.GetClass<ReaderProcessor>().GetReadMethodReference(parameterType);
 
                 //If a created method already exist nothing further is required.
                 if (createdMethodRef != null)
@@ -264,8 +259,8 @@ namespace FishNet.CodeGenerating.Processing
                 else
                 {
                     createdMethodRef = (extensionType == ExtensionType.Write) ?
-                        wp.CreateWriter(parameterType) :
-                        rp.CreateReader(parameterType);
+                        base.GetClass<WriterProcessor>().CreateWriter(parameterType) :
+                        base.GetClass<ReaderProcessor>().CreateReader(parameterType);
                 }
 
                 //If method was created.
@@ -332,7 +327,7 @@ namespace FishNet.CodeGenerating.Processing
 #endif
 
 
-            string prefix = (write) ? WriterProcessor.CUSTOM_WRITER_PREFIX : ReaderProcessor.CUSTOM_READER_PREFIX;
+            string prefix = (write) ? WriterProcessor.WRITE_PREFIX : ReaderProcessor.READ_PREFIX;
 
             //Does not contain prefix.
             if (methodDef.Name.Length < prefix.Length || methodDef.Name.Substring(0, prefix.Length) != prefix)

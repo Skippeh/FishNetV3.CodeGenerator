@@ -15,22 +15,20 @@ namespace FishNet.CodeGenerating.Helping.Extension
             return session.GetClass<GeneralHelper>().GetFieldReferenceResolve(fieldRef);
         }
 
-        /// <summary>
-        /// Makes a FieldReference generic if it has generic parameters.
-        /// </summary>
-        public static FieldReference TryMakeGenericInstance(this FieldReference fr)
+
+        public static FieldReference MakeHostGenericIfNeeded(this FieldDefinition fd, CodegenSession session)
         {
-            TypeReference declaringTr = fr.DeclaringType;
+            TypeReference declaringTr = fd.DeclaringType;
 
             if (declaringTr.HasGenericParameters)
             {
                 GenericInstanceType git = declaringTr.MakeGenericInstanceType();
-                FieldReference result = new FieldReference(fr.Name, fr.FieldType, git);
+                FieldReference result = new FieldReference(fd.Name, fd.FieldType, git);
                 return result;
             }
             else
             {
-                return fr;
+                return session.ImportReference(fd);
             }
         }
 

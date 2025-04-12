@@ -4,6 +4,7 @@ using Mono.Collections.Generic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace FishNet.CodeGenerating.Helping.Extension
 {
@@ -45,7 +46,7 @@ namespace FishNet.CodeGenerating.Helping.Extension
                         continue;
                     if (fd.IsNotSerialized)
                         continue;
-                    if (gh.HasExcludeSerializationAttribute(fd))
+                    if (gh.CodegenExclude(fd))
                         continue;
                     if (fd.IsPrivate)
                         continue;
@@ -77,7 +78,7 @@ namespace FishNet.CodeGenerating.Helping.Extension
                     //Missing get or set method.
                     if (pd.GetMethod == null || pd.SetMethod == null)
                         continue;
-                    if (gh.HasExcludeSerializationAttribute(pd))
+                    if (gh.CodegenExclude(pd))
                         continue;
                     if (pd.GetMethod.IsPrivate)
                         continue;

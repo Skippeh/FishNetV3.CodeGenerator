@@ -1,6 +1,7 @@
 ﻿using FishNet.Managing.Timing;
 using Mono.Cecil;
 using System;
+using UnityEngine;
 
 namespace FishNet.CodeGenerating.Helping
 {

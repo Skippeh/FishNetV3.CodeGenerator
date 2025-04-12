@@ -6,6 +6,9 @@ using Mono.Cecil;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.CompilationPipeline.Common.Diagnostics;
+#if !UNITY_2020_1_OR_NEWER
+using UnityEngine;
+#endif
 using SR = System.Reflection;
 
 
@@ -63,13 +66,13 @@ namespace FishNet.CodeGenerating
                     ,new WriterImports(), new WriterProcessor()
                     , new PhysicsHelper(), new TimeManagerHelper(), new AttributeHelper(), new GeneralHelper()
                     , new ObjectHelper(), new NetworkBehaviourHelper()
-                    , new TransportHelper()
+                    , new CreatedSyncVarGenerator(), new TransportHelper()
                     , new NetworkConnectionImports(), new PredictedObjectHelper(), new GeneratorHelper()
                     , new CustomSerializerProcessor()
                     , new NetworkBehaviourProcessor()
                     , new QolAttributeProcessor()
                     , new RpcProcessor()
-                    , new SyncTypeProcessor()
+                    , new NetworkBehaviourSyncProcessor()
                     , new PredictionProcessor()
                 };
 
@@ -92,6 +95,8 @@ namespace FishNet.CodeGenerating
         }
 
 
+
+
         #region Logging.
         /// <summary>
         /// Logs a warning.
@@ -99,7 +104,11 @@ namespace FishNet.CodeGenerating
         /// <param name="msg"></param>
         internal void LogWarning(string msg)
         {
+#if UNITY_2020_1_OR_NEWER
             Diagnostics.AddWarning(msg);
+#else
+            Debug.LogWarning(msg);
+#endif
         }
         /// <summary>
         /// Logs an error.
@@ -107,7 +116,11 @@ namespace FishNet.CodeGenerating
         /// <param name="msg"></param>
         internal void LogError(string msg)
         {
+#if UNITY_2020_1_OR_NEWER
             Diagnostics.AddError(msg);
+#else
+            Debug.LogError(msg);
+#endif
         }
         #endregion
 

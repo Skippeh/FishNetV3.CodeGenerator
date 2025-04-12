@@ -96,16 +96,6 @@ namespace FishNet.CodeGenerating.Extension
         }
 
         /// <summary>
-        /// Adds a parameter and returns added parameters.
-        /// </summary>
-        public static ParameterDefinition CreateParameter(this MethodDefinition thisMr, CodegenSession session, ParameterAttributes attr, System.Type type)
-        {
-            TypeReference parameterTypeRef = session.ImportReference(type);
-            ParameterDefinition pd = new ParameterDefinition($"p{thisMr.Parameters.Count}", attr, parameterTypeRef);
-            thisMr.Parameters.Add(pd);
-            return pd;
-        }
-        /// <summary>
         /// Adds otherMd parameters to thisMR and returns added parameters.
         /// </summary>
         public static List<ParameterDefinition> CreateParameters(this MethodReference thisMr, CodegenSession session, MethodDefinition otherMd)
@@ -189,23 +179,6 @@ namespace FishNet.CodeGenerating.Extension
         {
             MethodReference methodRef = session.ImportReference(md);
             return methodRef.GetMethodReference(session, typeReference);
-        }
-
-        /// <summary>
-        /// Removes ret if it exist at the end of the method. Returns if ret was removed.
-        /// </summary>
-        internal static bool RemoveEndRet(this MethodDefinition md, CodegenSession session)
-        {
-            int count = md.Body.Instructions.Count;
-            if (count > 0 && md.Body.Instructions[count - 1].OpCode == OpCodes.Ret)
-            {
-                md.Body.Instructions.RemoveAt(count - 1);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
         }
 
 

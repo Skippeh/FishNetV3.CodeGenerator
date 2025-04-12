@@ -3,7 +3,6 @@ using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.CodeGenerating.ILCore;
 using FishNet.Object;
 using FishNet.Serializing;
-using FishNet.Utility;
 using FishNet.Utility.Performance;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -11,6 +10,7 @@ using Mono.Cecil.Rocks;
 using System;
 using System.Collections.Generic;
 using SR = System.Reflection;
+using UnityDebug = UnityEngine.Debug;
 
 namespace FishNet.CodeGenerating.Helping
 {
@@ -60,13 +60,13 @@ namespace FishNet.CodeGenerating.Helping
         /// </summary>
         public const MethodAttributes GENERATED_METHOD_ATTRIBUTES = (MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.HideBySig);
         /// <summary>
-        /// Attributes required for custom serializer classes.
+        /// Prefix all built-in and user created write methods should begin with.
         /// </summary>
-        public const TypeAttributes CUSTOM_SERIALIZER_TYPEDEF_ATTRIBUTES = (TypeAttributes.Sealed | TypeAttributes.Abstract);
+        internal const string WRITE_PREFIX = "Write";
         /// <summary>
         /// Prefix all built-in and user created write methods should begin with.
         /// </summary>
-        internal const string CUSTOM_WRITER_PREFIX = "Write";
+        internal const string GENERATED_WRITE_PREFIX = "Write___";
         /// <summary>
         /// Types to exclude from being scanned for auto serialization.
         /// </summary>
@@ -93,12 +93,12 @@ namespace FishNet.CodeGenerating.Helping
         {
             GeneralHelper gh = base.GetClass<GeneralHelper>();
 
-            CreateGeneratedWritersClass();
+            CreateGeneratedClassData();
             FindInstancedWriters();
             CreateInstancedWriterExtensions();
 
             //Creates class for generated writers, and init on load method.
-            void CreateGeneratedWritersClass()
+            void CreateGeneratedClassData()
             {
                 GeneratedWriterClassTypeDef = gh.GetOrCreateClass(out _, GENERATED_TYPE_ATTRIBUTES, GENERATED_WRITERS_CLASS_NAME, null, WriterProcessor.GENERATED_WRITER_NAMESPACE);
                 /* If constructor isn't set then try to get or create it
@@ -161,10 +161,13 @@ namespace FishNet.CodeGenerating.Helping
         {
             autoPackMethod = false;
 
-            if (base.GetClass<GeneralHelper>().HasNotSerializableAttribute(methodInfo))
+            if (base.GetClass<GeneralHelper>().CodegenExclude(methodInfo))
                 return true;
-            //Method name doesn't start with prefix.
-            else if (!methodInfo.Name.StartsWith(CUSTOM_WRITER_PREFIX))
+            //Not long enough to be a write method.
+            else if (methodInfo.Name.Length < WRITE_PREFIX.Length)
+                return true;
+            //Method name doesn't start with writePrefix.
+            else if (methodInfo.Name.Substring(0, WRITE_PREFIX.Length) != WRITE_PREFIX)
                 return true;
 
             SR.ParameterInfo[] parameterInfos = methodInfo.GetParameters();
@@ -191,6 +194,7 @@ namespace FishNet.CodeGenerating.Helping
         /// </summary>
         private void CreateInstancedWriterExtensions()
         {
+            //return;
             if (!FishNetILPP.IsFishNetAssembly(base.Session))
                 return;
 
@@ -269,26 +273,20 @@ namespace FishNet.CodeGenerating.Helping
         /// <summary>
         /// Creates Write<T> delegates for known static methods.
         /// </summary>
-        public void CreateInitializeDelegates()
+        public void CreateStaticMethodDelegates()
         {
             foreach (KeyValuePair<string, MethodReference> item in StaticWriterMethods)
-                base.GetClass<WriterProcessor>().CreateInitializeDelegate(item.Value);
+                base.GetClass<WriterProcessor>().CreateStaticMethodWriteDelegate(item.Value);
         }
 
         /// <summary>
         /// Creates a Write delegate for writeMethodRef and places it within the generated reader/writer constructor.
         /// </summary>
         /// <param name="writeMr"></param>
-        private void CreateInitializeDelegate(MethodReference writeMr)
+        private void CreateStaticMethodWriteDelegate(MethodReference writeMr)
         {
             GeneralHelper gh = base.GetClass<GeneralHelper>();
             WriterImports wi = base.GetClass<WriterImports>();
-
-            /* If a global serializer is declared for the type
-             * and the method is not the declared serializer then
-             * exit early. */
-            if (IsGlobalSerializer(writeMr.Parameters[1].ParameterType) && writeMr.Name.StartsWith(UtilityConstants.GENERATED_WRITER_PREFIX))
-                return;
 
             //Check if ret already exist, if so remove it; ret will be added on again in this method.
             if (GeneratedWriterOnLoadMethodDef.Body.Instructions.Count != 0)
@@ -326,23 +324,23 @@ namespace FishNet.CodeGenerating.Helping
             //Generate for auto pack type.
             if (isAutoPacked)
             {
-                actionGenericInstance = gh.ActionT3_TypeRef.MakeGenericInstanceType(wi.Writer_TypeRef, dataTypeRef, base.GetClass<WriterImports>().AutoPackTypeRef);
+                actionGenericInstance = gh.ActionT3_TypeRef.MakeGenericInstanceType(wi.WriterTypeRef, dataTypeRef, base.GetClass<WriterImports>().AutoPackTypeRef);
                 actionConstructorInstanceMethodRef = gh.ActionT3Constructor_MethodRef.MakeHostInstanceGeneric(base.Session, actionGenericInstance);
             }
             //Generate for normal type.
             else
             {
-                actionGenericInstance = gh.ActionT2_TypeRef.MakeGenericInstanceType(wi.Writer_TypeRef, dataTypeRef);
+                actionGenericInstance = gh.ActionT2_TypeRef.MakeGenericInstanceType(wi.WriterTypeRef, dataTypeRef);
                 actionConstructorInstanceMethodRef = gh.ActionT2Constructor_MethodRef.MakeHostInstanceGeneric(base.Session, actionGenericInstance);
             }
 
             processor.Emit(OpCodes.Newobj, actionConstructorInstanceMethodRef);
             //Call delegate to GenericWriter<T>.Write
-            GenericInstanceType genericInstance = wi.GenericWriter_TypeRef.MakeGenericInstanceType(dataTypeRef);
-            MethodReference genericWriteMethodRef = (isAutoPacked) ?
-                wi.GenericWriter_WriteAutoPacked_MethodRef.MakeHostInstanceGeneric(base.Session, genericInstance) :
-                wi.GenericWriter_WriteUnpacked_MethodRef.MakeHostInstanceGeneric(base.Session, genericInstance);
-            processor.Emit(OpCodes.Call, genericWriteMethodRef);
+            GenericInstanceType genericInstance = wi.GenericWriterTypeRef.MakeGenericInstanceType(dataTypeRef);
+            MethodReference genericrWriteMethodRef = (isAutoPacked) ?
+                wi.WriteAutoPackGetSetMethodRef.MakeHostInstanceGeneric(base.Session, genericInstance) :
+                wi.WriteGetSetMethodRef.MakeHostInstanceGeneric(base.Session, genericInstance);
+            processor.Emit(OpCodes.Call, genericrWriteMethodRef);
 
             processor.Emit(OpCodes.Ret);
         }
@@ -429,6 +427,9 @@ namespace FishNet.CodeGenerating.Helping
         /// <returns></returns>
         internal MethodReference GetOrCreateWriteMethodReference(TypeReference typeRef)
         {
+#pragma warning disable CS0219
+            bool favorInstanced = false;
+#pragma warning restore CS0219
             //Try to get existing writer, if not present make one.
             MethodReference writeMethodRef = GetWriteMethodReference(typeRef);
             if (writeMethodRef == null)
@@ -598,14 +599,6 @@ namespace FishNet.CodeGenerating.Helping
         }
 
         /// <summary>
-        /// Returns if a type should use a declared/custom serializer globally.
-        /// </summary>
-        public bool IsGlobalSerializer(TypeReference dataTypeRef)
-        {
-            return dataTypeRef.CachedResolve(base.Session).HasCustomAttribute<UseGlobalCustomSerializerAttribute>();
-        }
-
-        /// <summary>
         /// Creates a Write call on a PooledWriter variable for parameterDef.
         /// EG: writer.WriteBool(xxxxx);
         /// </summary>
@@ -616,8 +609,6 @@ namespace FishNet.CodeGenerating.Helping
 
             if (writeMr != null)
             {
-                bool isGlobalSerializer = IsGlobalSerializer(valueParameterDef.ParameterType);
-
                 if (pooledWriterDef is VariableDefinition)
                 {
                     insts.Add(processor.Create(OpCodes.Ldloc, (VariableDefinition)pooledWriterDef));
@@ -633,7 +624,7 @@ namespace FishNet.CodeGenerating.Helping
                 }
                 insts.Add(processor.Create(OpCodes.Ldarg, valueParameterDef));
                 //If an auto pack method then insert default value.
-                if (!isGlobalSerializer && AutoPackedMethods.Contains(valueParameterDef.ParameterType))
+                if (AutoPackedMethods.Contains(valueParameterDef.ParameterType))
                 {
                     AutoPackType packType = base.GetClass<GeneralHelper>().GetDefaultAutoPackType(valueParameterDef.ParameterType);
                     insts.Add(processor.Create(OpCodes.Ldc_I4, (int)packType));
@@ -648,12 +639,6 @@ namespace FishNet.CodeGenerating.Helping
                     GenericInstanceType git = (GenericInstanceType)valueTr;
                     TypeReference genericTr = git.GenericArguments[0];
                     writeMr = writeMr.GetMethodReference(base.Session, genericTr);
-                }
-
-                if (isGlobalSerializer)
-                {
-                    //Switch out to use WriteUnpacked<T> instead.
-                    writeMr = base.GetClass<WriterImports>().Writer_WriteUnpacked_MethodRef.GetMethodReference(base.Session, valueTr);
                 }
 
                 insts.Add(processor.Create(OpCodes.Call, writeMr));
@@ -680,63 +665,39 @@ namespace FishNet.CodeGenerating.Helping
         /// EG: StaticClass.WriteBool(xxxxx);
         /// </summary>
         /// <param name="processor"></param>
-        /// <param name="memberValueFd"></param>
-        internal void CreateWrite(MethodDefinition writerMd, ParameterDefinition encasingValuePd, FieldDefinition memberValueFd, MethodReference writeMr)
+        /// <param name="fieldDef"></param>
+        internal void CreateWrite(MethodDefinition writerMd, ParameterDefinition valuePd, FieldDefinition fieldDef, MethodReference writeMr)
         {
             if (writeMr != null)
             {
-                bool isGlobalSerializer = (IsGlobalSerializer(memberValueFd.FieldType) || IsGlobalSerializer(encasingValuePd.ParameterType));
-
                 ILProcessor processor = writerMd.Body.GetILProcessor();
                 ParameterDefinition writerPd = writerMd.Parameters[0];
 
                 /* If generic then find write class for
                  * data type. Currently we only support one generic
                  * for this. */
-                if (memberValueFd.FieldType.IsGenericInstance)
+                if (fieldDef.FieldType.IsGenericInstance)
                 {
-                    GenericInstanceType git = (GenericInstanceType)memberValueFd.FieldType;
+                    GenericInstanceType git = (GenericInstanceType)fieldDef.FieldType;
                     TypeReference genericTr = git.GenericArguments[0];
                     writeMr = writeMr.GetMethodReference(base.Session, genericTr);
                 }
 
-                FieldReference fieldRef = base.GetClass<GeneralHelper>().GetFieldReference(memberValueFd);
+                FieldReference fieldRef = base.GetClass<GeneralHelper>().GetFieldReference(fieldDef);
                 processor.Emit(OpCodes.Ldarg, writerPd);
-                processor.Emit(OpCodes.Ldarg, encasingValuePd);
+                processor.Emit(OpCodes.Ldarg, valuePd);
                 processor.Emit(OpCodes.Ldfld, fieldRef);
                 //If an auto pack method then insert default value.
-                if (!isGlobalSerializer && AutoPackedMethods.Contains(memberValueFd.FieldType))
+                if (AutoPackedMethods.Contains(fieldDef.FieldType))
                 {
-                    AutoPackType packType = base.GetClass<GeneralHelper>().GetDefaultAutoPackType(memberValueFd.FieldType);
+                    AutoPackType packType = base.GetClass<GeneralHelper>().GetDefaultAutoPackType(fieldDef.FieldType);
                     processor.Emit(OpCodes.Ldc_I4, (int)packType);
-                }
-
-                /* If a generated write then instead of calling the
-                 * generated write directly call writer.Write<T> of
-                 * the type.
-                 * 
-                 * This will reroute to the generic writer, which does add an
-                 * extra step, but this also allows us to decide what writer
-                 * to use. In GenericWriter we can check if a method being set
-                 * as the writer is generated, and if so while another method
-                 * had already been set then favor the other method.
-                 * 
-                 * This will favor built-in and user created serializers. This has to be
-                 * done because we cannot check if a user created serializer exist
-                 * across assemblies, but at runtime we can make sure to favor the 
-                 * created one as described above. */
-                //True if has Write prefix for generated writers.
-                if (isGlobalSerializer)
-                {
-                    //Switch out to use WriteUnpacked<T> instead.
-                    TypeReference genericTr = base.ImportReference(memberValueFd.FieldType);
-                    writeMr = base.GetClass<WriterImports>().Writer_WriteUnpacked_MethodRef.GetMethodReference(base.Session, genericTr);
                 }
                 processor.Emit(OpCodes.Call, writeMr);
             }
             else
             {
-                base.LogError($"Writer not found for {memberValueFd.FieldType.FullName}.");
+                base.LogError($"Writer not found for {fieldDef.FieldType.FullName}.");
             }
         }
 
@@ -807,7 +768,8 @@ namespace FishNet.CodeGenerating.Helping
                     methodRefResult = CreateEnumWriterMethodDefinition(objectTr);
                 //Dictionary, List, ListCache
                 else if (serializerType == SerializerType.Dictionary
-                    || serializerType == SerializerType.List)
+                    || serializerType == SerializerType.List
+                    || serializerType == SerializerType.ListCache)
                     methodRefResult = CreateGenericCollectionWriterMethodReference(objectTr, serializerType);
                 //NetworkBehaviour.
                 else if (serializerType == SerializerType.NetworkBehaviour)
@@ -988,7 +950,7 @@ namespace FishNet.CodeGenerating.Helping
         /// <param name="objectTr"></param>
         /// <param name="processor"></param>
         /// <returns>false if fail</returns>
-        private bool WriteFieldsAndProperties(MethodDefinition generatedWriteMd, ParameterDefinition encasingValuePd, TypeReference objectTr)
+        private bool WriteFieldsAndProperties(MethodDefinition generatedWriteMd, ParameterDefinition valuePd, TypeReference objectTr)
         {
             WriterProcessor wh = base.GetClass<WriterProcessor>();
 
@@ -1010,7 +972,7 @@ namespace FishNet.CodeGenerating.Helping
                     tr = fieldDef.FieldType;
                 }
                 if (GetWriteMethod(fieldDef.FieldType, out MethodReference writeMr))
-                    wh.CreateWrite(generatedWriteMd, encasingValuePd, fieldDef, writeMr);
+                    wh.CreateWrite(generatedWriteMd, valuePd, fieldDef, writeMr);
             }
 
             //Properties.
@@ -1020,7 +982,7 @@ namespace FishNet.CodeGenerating.Helping
                 if (GetWriteMethod(propertyDef.PropertyType, out MethodReference writerMr))
                 {
                     MethodReference getMr = base.Module.ImportReference(propertyDef.GetMethod);
-                    wh.CreateWrite(generatedWriteMd, encasingValuePd, getMr, writerMr);
+                    wh.CreateWrite(generatedWriteMd, valuePd, getMr, writerMr);
                 }
             }
 
@@ -1148,6 +1110,8 @@ namespace FishNet.CodeGenerating.Helping
                 instancedWriteMr = wi.Writer_WriteDictionary_MethodRef;
             else if (st == SerializerType.List)
                 instancedWriteMr = wi.Writer_WriteList_MethodRef;
+            else if (st == SerializerType.ListCache)
+                instancedWriteMr = wi.Writer_WriteListCache_MethodRef;
             else
                 instancedWriteMr = null;
 
@@ -1172,7 +1136,7 @@ namespace FishNet.CodeGenerating.Helping
         /// <returns></returns>
         public MethodDefinition CreateStaticWriterStubMethodDefinition(TypeReference objectTypeRef, string nameExtension = WriterProcessor.GENERATED_WRITER_NAMESPACE)
         {
-            string methodName = $"{UtilityConstants.GENERATED_WRITER_PREFIX}{objectTypeRef.FullName}{nameExtension}";
+            string methodName = $"{GENERATED_WRITE_PREFIX}{objectTypeRef.FullName}{nameExtension}";
             // create new writer for this type
             TypeDefinition writerTypeDef = base.GetClass<GeneralHelper>().GetOrCreateClass(out _, GENERATED_TYPE_ATTRIBUTES, GENERATED_WRITERS_CLASS_NAME, null);
 

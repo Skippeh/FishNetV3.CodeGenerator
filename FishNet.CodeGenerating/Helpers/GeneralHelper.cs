@@ -21,8 +21,8 @@ namespace FishNet.CodeGenerating.Helping
     internal class GeneralHelper : CodegenBase
     {
         #region Reflection references.
-        public string ExcludeSerializationAttribute_FullName;
-        public string NotSerializerAttribute_FullName;
+        public string CodegenExcludeAttribute_FullName;
+        public string CodegenIncludeAttribute_FullName;
         public MethodReference Extension_Attribute_Ctor_MethodRef;
         public MethodReference BasicQueue_Clear_MethodRef;
         public TypeReference List_TypeRef;
@@ -35,7 +35,7 @@ namespace FishNet.CodeGenerating.Helping
         public MethodReference InstanceFinder_NetworkManager_MethodRef;
         public MethodReference NetworkBehaviour_CanLog_MethodRef;
         public MethodReference NetworkBehaviour_NetworkManager_MethodRef;
-        public MethodReference NetworkManager_Log_MethodRef;
+        public MethodReference NetworkManager_LogCommon_MethodRef;
         public MethodReference NetworkManager_LogWarning_MethodRef;
         public MethodReference NetworkManager_LogError_MethodRef;
         public MethodReference Debug_LogCommon_MethodRef;
@@ -52,8 +52,8 @@ namespace FishNet.CodeGenerating.Helping
         public MethodReference FunctionT2ConstructorMethodRef;
         public MethodReference FunctionT3ConstructorMethodRef;
         //GeneratedComparer
-        public MethodReference PublicPropertyComparer_Compare_Set_MethodRef;
-        public MethodReference PublicPropertyComparer_IsDefault_Set_MethodRef;
+        public MethodReference GeneratedComparer_Compare_Set_MethodRef;
+        public MethodReference GeneratedComparer_IsDefault_Set_MethodRef;
         public TypeReference GeneratedComparer_TypeRef;
         public TypeDefinition GeneratedComparer_ClassTypeDef;
         public MethodDefinition GeneratedComparer_OnLoadMethodDef;
@@ -90,8 +90,8 @@ namespace FishNet.CodeGenerating.Helping
             ActionT2Constructor_MethodRef = base.ImportReference(typeof(Action<,>).GetConstructors()[0]);
             ActionT3Constructor_MethodRef = base.ImportReference(typeof(Action<,,>).GetConstructors()[0]);
 
-            ExcludeSerializationAttribute_FullName = typeof(ExcludeSerializationAttribute).FullName;
-            NotSerializerAttribute_FullName = typeof(NotSerializerAttribute).FullName;
+            CodegenExcludeAttribute_FullName = typeof(CodegenExcludeAttribute).FullName;
+            CodegenIncludeAttribute_FullName = typeof(CodegenIncludeAttribute).FullName;
 
             tmpType = typeof(BasicQueue<>);
             base.ImportReference(tmpType);
@@ -131,19 +131,15 @@ namespace FishNet.CodeGenerating.Helping
             InstanceFinder_NetworkManager_MethodRef = base.ImportReference(getNetworkManagerPropertyInfo.GetMethod);
 
             //NetworkManager debug logs. 
-            Type networkManagerExtensionsType = typeof(NetworkManagerExtensions);
-            foreach (SR.MethodInfo methodInfo in networkManagerExtensionsType.GetMethods())
+            Type networkManagerType = typeof(NetworkManager);
+            foreach (SR.MethodInfo methodInfo in networkManagerType.GetMethods())
             {
-                //These extension methods will have two parameters: the type extension is for, and value.
-                if (methodInfo.GetParameters().Length == 2)
-                {
-                    if (methodInfo.Name == nameof(NetworkManagerExtensions.Log))
-                        NetworkManager_Log_MethodRef = base.ImportReference(methodInfo);
-                    else if (methodInfo.Name == nameof(NetworkManagerExtensions.LogWarning))
-                        NetworkManager_LogWarning_MethodRef = base.ImportReference(methodInfo);
-                    else if (methodInfo.Name == nameof(NetworkManagerExtensions.LogError))
-                        NetworkManager_LogError_MethodRef = base.ImportReference(methodInfo);
-                }
+                if (methodInfo.Name == nameof(NetworkManager.Log) && methodInfo.GetParameters().Length == 1)
+                    NetworkManager_LogCommon_MethodRef = base.ImportReference(methodInfo);
+                else if (methodInfo.Name == nameof(NetworkManager.LogWarning))
+                    NetworkManager_LogWarning_MethodRef = base.ImportReference(methodInfo);
+                else if (methodInfo.Name == nameof(NetworkManager.LogError))
+                    NetworkManager_LogError_MethodRef = base.ImportReference(methodInfo);
             }
 
             //ArraySegment<byte>
@@ -209,13 +205,13 @@ namespace FishNet.CodeGenerating.Helping
                     GeneratedComparer_OnLoadMethodDef.Body.GetILProcessor().Emit(OpCodes.Ret);
                 }
 
-                System.Type ppComparerType = typeof(PublicPropertyComparer<>);
-                GeneratedComparer_TypeRef = base.ImportReference(ppComparerType);
+                System.Type repComparerType = typeof(GeneratedComparer<>);
+                GeneratedComparer_TypeRef = base.ImportReference(repComparerType);
                 System.Reflection.PropertyInfo pi;
-                pi = ppComparerType.GetProperty(nameof(PublicPropertyComparer<int>.Compare));
-                PublicPropertyComparer_Compare_Set_MethodRef = base.ImportReference(pi.GetSetMethod());
-                pi = ppComparerType.GetProperty(nameof(PublicPropertyComparer<int>.IsDefault));
-                PublicPropertyComparer_IsDefault_Set_MethodRef = base.ImportReference(pi.GetSetMethod());
+                pi = repComparerType.GetProperty(nameof(GeneratedComparer<int>.Compare));
+                GeneratedComparer_Compare_Set_MethodRef = base.ImportReference(pi.GetSetMethod());
+                pi = repComparerType.GetProperty(nameof(GeneratedComparer<int>.IsDefault));
+                GeneratedComparer_IsDefault_Set_MethodRef = base.ImportReference(pi.GetSetMethod());
 
                 System.Type iEquatableType = typeof(IEquatable<>);
                 IEquatable_TypeRef = base.ImportReference(iEquatableType);
@@ -327,17 +323,16 @@ namespace FishNet.CodeGenerating.Helping
             md.CustomAttributes.Add(ca);
         }
 
-        #region HasExcludeSerializationAttribute
         /// <summary>
         /// Returns if typeDef should be ignored.
         /// </summary>
         /// <param name="typeDef"></param>
         /// <returns></returns>
-        public bool HasExcludeSerializationAttribute(TypeDefinition typeDef)
+        public bool IgnoreTypeDefinition(TypeDefinition typeDef)
         {
             foreach (CustomAttribute item in typeDef.CustomAttributes)
             {
-                if (item.AttributeType.FullName == ExcludeSerializationAttribute_FullName)
+                if (item.AttributeType.FullName == typeof(CodegenExcludeAttribute).FullName)
                     return true;
             }
 
@@ -347,11 +342,11 @@ namespace FishNet.CodeGenerating.Helping
         /// <summary>
         /// Returns if type uses CodegenExcludeAttribute.
         /// </summary>
-        public bool HasExcludeSerializationAttribute(SR.MethodInfo methodInfo)
+        public bool CodegenExclude(SR.MethodInfo methodInfo)
         {
             foreach (SR.CustomAttributeData item in methodInfo.CustomAttributes)
             {
-                if (item.AttributeType.FullName == ExcludeSerializationAttribute_FullName)
+                if (item.AttributeType == typeof(CodegenExcludeAttribute))
                     return true;
             }
 
@@ -361,11 +356,11 @@ namespace FishNet.CodeGenerating.Helping
         /// <summary>
         /// Returns if type uses CodegenExcludeAttribute.
         /// </summary>
-        public bool HasExcludeSerializationAttribute(MethodDefinition methodDef)
+        public bool CodegenExclude(MethodDefinition methodDef)
         {
             foreach (CustomAttribute item in methodDef.CustomAttributes)
             {
-                if (item.AttributeType.FullName == ExcludeSerializationAttribute_FullName)
+                if (item.AttributeType.FullName == CodegenExcludeAttribute_FullName)
                     return true;
             }
 
@@ -375,11 +370,25 @@ namespace FishNet.CodeGenerating.Helping
         /// <summary>
         /// Returns if type uses CodegenExcludeAttribute.
         /// </summary>
-        public bool HasExcludeSerializationAttribute(FieldDefinition fieldDef)
+        public bool CodegenExclude(FieldDefinition fieldDef)
         {
             foreach (CustomAttribute item in fieldDef.CustomAttributes)
             {
-                if (item.AttributeType.FullName == ExcludeSerializationAttribute_FullName)
+                if (item.AttributeType.FullName == CodegenExcludeAttribute_FullName)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns if type uses CodegenIncludeAttribute.
+        /// </summary>
+        public bool CodegenInclude(FieldDefinition fieldDef)
+        {
+            foreach (CustomAttribute item in fieldDef.CustomAttributes)
+            {
+                if (item.AttributeType.FullName == CodegenIncludeAttribute_FullName)
                     return true;
             }
 
@@ -389,47 +398,34 @@ namespace FishNet.CodeGenerating.Helping
         /// <summary>
         /// Returns if type uses CodegenExcludeAttribute.
         /// </summary>
-        public bool HasExcludeSerializationAttribute(PropertyDefinition propDef)
+        public bool CodegenExclude(PropertyDefinition propDef)
         {
             foreach (CustomAttribute item in propDef.CustomAttributes)
             {
-                if (item.AttributeType.FullName == ExcludeSerializationAttribute_FullName)
+                if (item.AttributeType.FullName == CodegenExcludeAttribute_FullName)
                     return true;
             }
 
             return false;
         }
-        #endregion
 
-        #region NotSerializableAttribute
-        /// <summary>
-        /// Returns if type uses CodegenExcludeAttribute.
-        /// </summary>
-        public bool HasNotSerializableAttribute(SR.MethodInfo methodInfo)
-        {
-            foreach (SR.CustomAttributeData item in methodInfo.CustomAttributes)
-            {
-                if (item.AttributeType.FullName == NotSerializerAttribute_FullName)
-                    return true;
-            }
-
-            return false;
-        }
 
         /// <summary>
         /// Returns if type uses CodegenExcludeAttribute.
         /// </summary>
-        public bool HasNotSerializableAttribute(MethodDefinition methodDef)
+        public bool CodegenInclude(PropertyDefinition propDef)
         {
-            foreach (CustomAttribute item in methodDef.CustomAttributes)
+            foreach (CustomAttribute item in propDef.CustomAttributes)
             {
-                if (item.AttributeType.FullName == NotSerializerAttribute_FullName)
+                if (item.AttributeType.FullName == CodegenIncludeAttribute_FullName)
                     return true;
             }
 
             return false;
         }
-        #endregion
+
+
+
 
         /// <summary>
         /// Calls copiedMd with the assumption md shares the same parameters.
@@ -761,6 +757,7 @@ namespace FishNet.CodeGenerating.Helping
         /// <summary>
         /// Creates instructions to log using a NetworkManager or Unity logging.
         /// </summary>
+        /// <param name="preferNetworkManager">NetworkManager will be used to log first. If the NetworkManager is unavailable Unity logging will be used.</param>
         public List<Instruction> LogMessage(MethodDefinition md, string message, LoggingType loggingType)
         {
             ILProcessor processor = md.Body.GetILProcessor();
@@ -781,8 +778,7 @@ namespace FishNet.CodeGenerating.Helping
             //If does not inherit NB then use InstanceFinder.
             if (useStatic)
             {
-                instructions.Add(processor.Create(OpCodes.Ldnull));
-                instructions.Add(processor.Create(OpCodes.Stloc, networkManagerVd));
+                SetNetworkManagerFromInstanceFinder();
             }
             //Inherits NB, load from base.NetworkManager.
             else
@@ -790,11 +786,61 @@ namespace FishNet.CodeGenerating.Helping
                 instructions.Add(processor.Create(OpCodes.Ldarg_0));
                 instructions.Add(processor.Create(OpCodes.Call, NetworkBehaviour_NetworkManager_MethodRef));
                 instructions.Add(processor.Create(OpCodes.Stloc, networkManagerVd));
+
+                //If null from NB then use instancefinder.
+                Instruction skipSetFromInstanceFinderInst = processor.Create(OpCodes.Nop);
+                //if (nmVd == null) nmVd = InstanceFinder.NetworkManager.
+                instructions.Add(processor.Create(OpCodes.Ldloc, networkManagerVd));
+                instructions.Add(processor.Create(OpCodes.Brtrue_S, skipSetFromInstanceFinderInst));
+                SetNetworkManagerFromInstanceFinder();
+                instructions.Add(skipSetFromInstanceFinderInst);
             }
+
+            //Sets NetworkManager variable from instancefinder.
+            void SetNetworkManagerFromInstanceFinder()
+            {
+                instructions.Add(processor.Create(OpCodes.Call, InstanceFinder_NetworkManager_MethodRef));
+                instructions.Add(processor.Create(OpCodes.Stloc, networkManagerVd));
+            }
+
+            VariableDefinition networkManagerIsNullVd = CreateVariable(md, typeof(bool));
+            //bool networkManagerIsNull = (networkManager == null);
+            instructions.Add(processor.Create(OpCodes.Ldloc, networkManagerVd));
+            instructions.Add(processor.Create(OpCodes.Ldnull));
+            instructions.Add(processor.Create(OpCodes.Ceq));
+            instructions.Add(processor.Create(OpCodes.Stloc, networkManagerIsNullVd));
+
+            /* If (networkManagerIsNull)
+             *      networkManager.Log...
+             * else
+             *      UnityEngine.Debug.Log... */
+            Instruction afterNetworkManagerLogInst = processor.Create(OpCodes.Nop);
+            Instruction afterUnityLogInst = processor.Create(OpCodes.Nop);
+            instructions.Add(processor.Create(OpCodes.Ldloc, networkManagerIsNullVd));
+            instructions.Add(processor.Create(OpCodes.Brtrue, afterNetworkManagerLogInst));
+            instructions.AddRange(LogNetworkManagerMessage(md, networkManagerVd, message, loggingType));
+            instructions.Add(processor.Create(OpCodes.Br, afterUnityLogInst));
+            instructions.Add(afterNetworkManagerLogInst);
+            instructions.AddRange(LogUnityDebugMessage(md, message, loggingType));
+            instructions.Add(afterUnityLogInst);
+
+            return instructions;
+        }
+
+        /// <summary>
+        /// Creates instructions to log using NetworkManager without error checking.
+        /// </summary>
+        public List<Instruction> LogNetworkManagerMessage(MethodDefinition md, VariableDefinition networkManagerVd, string message, LoggingType loggingType)
+        {
+            List<Instruction> instructions = new List<Instruction>();
+            if (!CanUseLogging(loggingType))
+                return instructions;
+
+            ILProcessor processor = md.Body.GetILProcessor();
 
             MethodReference methodRef;
             if (loggingType == LoggingType.Common)
-                methodRef = NetworkManager_Log_MethodRef;
+                methodRef = NetworkManager_LogCommon_MethodRef;
             else if (loggingType == LoggingType.Warning)
                 methodRef = NetworkManager_LogWarning_MethodRef;
             else
@@ -804,6 +850,30 @@ namespace FishNet.CodeGenerating.Helping
             instructions.Add(processor.Create(OpCodes.Ldstr, message));
             instructions.Add(processor.Create(OpCodes.Call, methodRef));
 
+            return instructions;
+        }
+
+        /// <summary>
+        /// Creates instructions to log using Unity logging.
+        /// </summary>
+        public List<Instruction> LogUnityDebugMessage(MethodDefinition md, string message, LoggingType loggingType)
+        {
+            List<Instruction> instructions = new List<Instruction>();
+            if (!CanUseLogging(loggingType))
+                return instructions;
+
+            ILProcessor processor = md.Body.GetILProcessor();
+
+            MethodReference methodRef;
+            if (loggingType == LoggingType.Common)
+                methodRef = Debug_LogCommon_MethodRef;
+            else if (loggingType == LoggingType.Warning)
+                methodRef = Debug_LogWarning_MethodRef;
+            else
+                methodRef = Debug_LogError_MethodRef;
+
+            instructions.Add(processor.Create(OpCodes.Ldstr, message));
+            instructions.Add(processor.Create(OpCodes.Call, methodRef));
             return instructions;
         }
 
@@ -1252,7 +1322,7 @@ namespace FishNet.CodeGenerating.Helping
 
             //Call delegate to ReplicateComparer.Compare(T, T);
             git = GeneratedComparer_TypeRef.MakeGenericInstanceType(dataTr);
-            MethodReference comparerMr = PublicPropertyComparer_Compare_Set_MethodRef.MakeHostInstanceGeneric(base.Session, git);
+            MethodReference comparerMr = GeneratedComparer_Compare_Set_MethodRef.MakeHostInstanceGeneric(base.Session, git);
             insts.Add(processor.Create(OpCodes.Call, comparerMr));
             processor.InsertFirst(insts);
         }
@@ -1342,7 +1412,7 @@ namespace FishNet.CodeGenerating.Helping
 
                 //Call delegate to ReplicateComparer.IsDefault(T).
                 git = GeneratedComparer_TypeRef.MakeGenericInstanceType(dataTr);
-                MethodReference isDefaultMr = PublicPropertyComparer_IsDefault_Set_MethodRef.MakeHostInstanceGeneric(base.Session, git);
+                MethodReference isDefaultMr = GeneratedComparer_IsDefault_Set_MethodRef.MakeHostInstanceGeneric(base.Session, git);
                 insts.Add(processor.Create(OpCodes.Call, isDefaultMr));
                 processor.InsertFirst(insts);
             }

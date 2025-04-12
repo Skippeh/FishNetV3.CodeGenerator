@@ -1,6 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
-using FishNet.CodeGenerating.Helping.Extension;
-using FishNet.Connection;
+﻿using FishNet.Connection;
 using FishNet.Serializing;
 using Mono.Cecil;
 using System;
@@ -18,11 +16,12 @@ namespace FishNet.CodeGenerating.Helping
         public MethodReference Reader_ReadPackedWhole_MethodRef;
         public MethodReference Reader_ReadDictionary_MethodRef;
         public MethodReference Reader_ReadList_MethodRef;
+        public MethodReference Reader_ReadListCache_MethodRef;
         public MethodReference Reader_ReadArray_MethodRef;
-        public TypeReference GenericReader_TypeRef;
-
-        public MethodReference GenericReader_ReadUnpacked_MethodRef;
-        public MethodReference GenericReader_ReadAutoPacked_MethodRef;
+        public TypeReference GenericReaderTypeRef;
+        public TypeReference ReaderTypeRef;
+        public MethodReference ReadSetMethodRef;
+        public MethodReference ReadAutoPackSetMethodRef;
         #endregion
 
         /// <summary>
@@ -37,11 +36,15 @@ namespace FishNet.CodeGenerating.Helping
             PooledReader_TypeRef = base.ImportReference(typeof(PooledReader));
             Reader_TypeRef = base.ImportReference(typeof(Reader));
             NetworkConnection_TypeRef = base.ImportReference(typeof(NetworkConnection));
-            GenericReader_TypeRef = base.ImportReference(typeof(GenericReader<>));
 
-            TypeDefinition genericWriterTd = GenericReader_TypeRef.CachedResolve(base.Session);
-            GenericReader_ReadUnpacked_MethodRef = base.ImportReference(genericWriterTd.GetMethod(nameof(GenericReader<int>.SetReadUnpacked)));
-            GenericReader_ReadAutoPacked_MethodRef = base.ImportReference(genericWriterTd.GetMethod(nameof(GenericReader<int>.SetReadAutoPacked)));
+            GenericReaderTypeRef = base.ImportReference(typeof(GenericReader<>));
+            ReaderTypeRef = base.ImportReference(typeof(Reader));
+
+            System.Reflection.PropertyInfo readPropertyInfo;
+            readPropertyInfo = typeof(GenericReader<>).GetProperty(nameof(GenericReader<int>.Read));
+            ReadSetMethodRef = base.ImportReference(readPropertyInfo.GetSetMethod());
+            readPropertyInfo = typeof(GenericReader<>).GetProperty(nameof(GenericReader<int>.ReadAutoPack));
+            ReadAutoPackSetMethodRef = base.ImportReference(readPropertyInfo.GetSetMethod());
 
 
             Type pooledReaderType = typeof(PooledReader);
@@ -52,10 +55,12 @@ namespace FishNet.CodeGenerating.Helping
                 if (methodInfo.Name == nameof(PooledReader.ReadPackedWhole))
                     Reader_ReadPackedWhole_MethodRef = base.ImportReference(methodInfo);
                 //Relay readers.
-                else if (parameterCount == 0 && methodInfo.Name == nameof(PooledReader.ReadDictionaryAllocated))
+                else if (parameterCount == 0 && methodInfo.Name == nameof(PooledReader.ReadDictionary))
                     Reader_ReadDictionary_MethodRef = base.ImportReference(methodInfo);
                 else if (parameterCount == 0 && methodInfo.Name == nameof(PooledReader.ReadListAllocated))
                     Reader_ReadList_MethodRef = base.ImportReference(methodInfo);
+                else if (parameterCount == 0 && methodInfo.Name == nameof(PooledReader.ReadListCacheAllocated))
+                    Reader_ReadListCache_MethodRef = base.ImportReference(methodInfo);
                 else if (parameterCount == 0 && methodInfo.Name == nameof(PooledReader.ReadArrayAllocated))
                     Reader_ReadArray_MethodRef = base.ImportReference(methodInfo);
             }

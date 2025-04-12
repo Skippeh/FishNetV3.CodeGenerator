@@ -1,6 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
-using FishNet.CodeGenerating.Helping.Extension;
-using FishNet.Object;
+﻿using FishNet.Object;
 using FishNet.Serializing;
 using Mono.Cecil;
 using System;
@@ -20,13 +18,14 @@ namespace FishNet.CodeGenerating.Helping
         public MethodReference PooledWriter_Dispose_MethodRef;
         public MethodReference Writer_WriteDictionary_MethodRef;
         public MethodReference Writer_WriteList_MethodRef;
+        public MethodReference Writer_WriteListCache_MethodRef;
         public MethodReference Writer_WriteArray_MethodRef;
         public TypeReference AutoPackTypeRef;
 
-        public TypeReference GenericWriter_TypeRef;
-        public MethodReference GenericWriter_WriteUnpacked_MethodRef;
-        public MethodReference GenericWriter_WriteAutoPacked_MethodRef;
-        public MethodReference Writer_WriteUnpacked_MethodRef;
+        public TypeReference GenericWriterTypeRef;
+        public TypeReference WriterTypeRef;
+        public MethodReference WriteGetSetMethodRef;
+        public MethodReference WriteAutoPackGetSetMethodRef;
         #endregion
 
         /// <summary>
@@ -39,20 +38,22 @@ namespace FishNet.CodeGenerating.Helping
             PooledWriter_TypeRef = base.ImportReference(typeof(PooledWriter));
             Writer_TypeRef = base.ImportReference(typeof(Writer));
             AutoPackTypeRef = base.ImportReference(typeof(AutoPackType));
-            GenericWriter_TypeRef = base.ImportReference(typeof(GenericWriter<>));
-            Writer_WriteUnpacked_MethodRef = Writer_TypeRef.CachedResolve(base.Session).GetMethodReference(base.Session, nameof(Writer.WriteUnpacked));
 
+            GenericWriterTypeRef = base.ImportReference(typeof(GenericWriter<>));
+            WriterTypeRef = base.ImportReference(typeof(Writer));
 
-            TypeDefinition genericWriterTd = GenericWriter_TypeRef.CachedResolve(base.Session);
-            GenericWriter_WriteUnpacked_MethodRef = base.ImportReference(genericWriterTd.GetMethod(nameof(GenericWriter<int>.SetWriteUnpacked)));
-            GenericWriter_WriteAutoPacked_MethodRef = base.ImportReference(genericWriterTd.GetMethod(nameof(GenericWriter<int>.SetWriteAutoPacked)));
+            PropertyInfo writePropertyInfo;
+            writePropertyInfo = typeof(GenericWriter<>).GetProperty(nameof(GenericWriter<int>.Write));
+            WriteGetSetMethodRef = base.ImportReference(writePropertyInfo.GetSetMethod());
+            writePropertyInfo = typeof(GenericWriter<>).GetProperty(nameof(GenericWriter<int>.WriteAutoPack));
+            WriteAutoPackGetSetMethodRef = base.ImportReference(writePropertyInfo.GetSetMethod());
 
             //WriterPool.GetWriter
             Type writerPoolType = typeof(WriterPool);
             base.ImportReference(writerPoolType);
             foreach (var methodInfo in writerPoolType.GetMethods())
             {
-                if (methodInfo.Name == nameof(WriterPool.Retrieve))
+                if (methodInfo.Name == nameof(WriterPool.GetWriter))
                 {
                     //GetWriter().
                     if (methodInfo.GetParameters().Length == 0)
@@ -85,6 +86,8 @@ namespace FishNet.CodeGenerating.Helping
                     Writer_WriteDictionary_MethodRef = base.ImportReference(methodInfo);
                 else if (parameterCount == 1 && methodInfo.Name == nameof(PooledWriter.WriteList))
                     Writer_WriteList_MethodRef = base.ImportReference(methodInfo);
+                else if (parameterCount == 1 && methodInfo.Name == nameof(PooledWriter.WriteListCache))
+                    Writer_WriteListCache_MethodRef = base.ImportReference(methodInfo);
                 else if (parameterCount == 1 && methodInfo.Name == nameof(PooledWriter.WriteArray))
                     Writer_WriteArray_MethodRef = base.ImportReference(methodInfo);
             }

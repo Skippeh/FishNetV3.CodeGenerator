@@ -18,6 +18,8 @@ namespace FishNet.CodeGenerating.Helping
         private string ServerRpcAttribute_FullName;
         private string ObserversRpcAttribute_FullName;
         private string TargetRpcAttribute_FullName;
+        private string SyncVarAttribute_FullName;
+        private string SyncObjectAttribute_FullName;
         #endregion   
 
         public override bool ImportReferences()
@@ -27,13 +29,10 @@ namespace FishNet.CodeGenerating.Helping
             ServerRpcAttribute_FullName = typeof(ServerRpcAttribute).FullName;
             ObserversRpcAttribute_FullName = typeof(ObserversRpcAttribute).FullName;
             TargetRpcAttribute_FullName = typeof(TargetRpcAttribute).FullName;
-#if !PREDICTION_V2
+            SyncVarAttribute_FullName = typeof(SyncVarAttribute).FullName;
+            SyncObjectAttribute_FullName = typeof(SyncObjectAttribute).FullName;
             ReplicateAttribute_FullName = typeof(ReplicateAttribute).FullName;
             ReconcileAttribute_FullName = typeof(ReconcileAttribute).FullName;
-#else
-            ReplicateAttribute_FullName = typeof(ReplicateAttribute).FullName;
-            ReconcileAttribute_FullName = typeof(ReconcileAttribute).FullName;
-#endif
             return true;
         }
 
@@ -68,6 +67,26 @@ namespace FishNet.CodeGenerating.Helping
                 return QolAttributeType.Client;
             else
                 return QolAttributeType.None;
+        }
+
+
+        /// <summary>
+        /// Returns if attribute if a SyncVarAttribute.
+        /// </summary>
+        /// <param name="attributeFullName"></param>
+        /// <returns></returns>
+        public bool IsSyncVarAttribute(string attributeFullName)
+        {
+            return (attributeFullName == SyncVarAttribute_FullName);
+        }
+        /// <summary>
+        /// Returns if attribute if a SyncObjectAttribute.
+        /// </summary>
+        /// <param name="attributeFullName"></param>
+        /// <returns></returns>
+        public bool IsSyncObjectAttribute(string attributeFullName)
+        {
+            return (attributeFullName == SyncObjectAttribute_FullName);
         }
     }
 

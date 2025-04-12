@@ -7,10 +7,11 @@ using FishNet.Object.Helping;
 using FishNet.Transporting;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using GameKit.Dependencies.Utilities;
+using GameKit.Utilities;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 using FishNet.Object;
 
 namespace FishNet.CodeGenerating.Processing.Rpc

@@ -2,6 +2,7 @@
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
 using Mono.Cecil;
+using UnityEngine;
 
 namespace FishNet.CodeGenerating.Extension
 {
@@ -31,7 +32,6 @@ namespace FishNet.CodeGenerating.Extension
             str = str.Replace(">", "");
             return str;
         }
-
 
         /// <summary>
         /// Makes a GenericInstanceType.
