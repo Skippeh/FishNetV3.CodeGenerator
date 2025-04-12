@@ -45,6 +45,8 @@ namespace FishNet.CodeGenerator
 
             if (processor.WillProcess(compiledAssembly))
             {
+                Console.WriteLine($"Processing {assemblyPath}");
+                
                 ILPostProcessResult? result = processor.Process(compiledAssembly);
 
                 if (result == null)
