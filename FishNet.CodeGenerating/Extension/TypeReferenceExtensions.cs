@@ -2,7 +2,6 @@
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
 using Mono.Cecil;
-using UnityEngine;
 
 namespace FishNet.CodeGenerating.Extension
 {

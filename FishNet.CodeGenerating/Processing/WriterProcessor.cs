@@ -11,7 +11,6 @@ using Mono.Cecil.Rocks;
 using System;
 using System.Collections.Generic;
 using SR = System.Reflection;
-using UnityDebug = UnityEngine.Debug;
 
 namespace FishNet.CodeGenerating.Helping
 {

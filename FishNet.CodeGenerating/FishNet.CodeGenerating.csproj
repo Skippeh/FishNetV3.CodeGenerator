@@ -6,13 +6,20 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
 
+  <Import Project="$(SolutionDir)DevVars.targets" />
+
   <ItemGroup>
-    <PackageReference Include="Mono.Cecil" Version="0.11.4" />
+    <Reference Include="$(UnityFolder)\Editor\Data\Managed\UnityEngine\UnityEngine*.dll" />
+    <Reference Include="$(UnityFolder)\Editor\Data\Resources\PackageManager\ProjectTemplates\libcache\com.unity.template.3d-*\ScriptAssemblies\UnityEngine.UI.dll" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FishNet.Runtime\FishNet.Runtime.csproj" />
     <ProjectReference Include="..\Unity.CompilationPipeline.Common\Unity.CompilationPipeline.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
   </ItemGroup>
 
 </Project>

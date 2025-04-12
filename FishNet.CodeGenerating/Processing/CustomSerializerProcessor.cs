@@ -7,7 +7,6 @@ using FishNet.Serializing.Helping;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace FishNet.CodeGenerating.Processing
 {

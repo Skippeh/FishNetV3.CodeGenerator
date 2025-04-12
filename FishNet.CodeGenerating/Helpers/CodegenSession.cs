@@ -6,9 +6,6 @@ using Mono.Cecil;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.CompilationPipeline.Common.Diagnostics;
-#if !UNITY_2020_1_OR_NEWER
-using UnityEngine;
-#endif
 using SR = System.Reflection;
 
 

@@ -8,7 +8,7 @@ using Unity.CompilationPipeline.Common.ILPostProcessing;
 
 namespace FishNet.CodeGenerating
 {
-    internal class PostProcessorAssemblyResolver : IAssemblyResolver
+    internal class PostProcessorAssemblyResolver : BaseAssemblyResolver
     {
         private readonly string[] m_AssemblyReferences;
         private readonly Dictionary<string, AssemblyDefinition> m_AssemblyCache = new Dictionary<string, AssemblyDefinition>();
@@ -37,7 +37,7 @@ namespace FishNet.CodeGenerating
                 var fileName = FindFile(name);
                 if (fileName == null)
                 {
-                    return null;
+                    return base.Resolve(name, parameters);
                 }
 
                 var lastWriteTime = File.GetLastWriteTime(fileName);
