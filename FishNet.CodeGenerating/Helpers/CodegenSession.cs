@@ -1,4 +1,5 @@
-﻿using FishNet.CodeGenerating.Helping;
+﻿using System;
+using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.ILCore;
 using FishNet.CodeGenerating.Processing;
 using FishNet.CodeGenerating.Processing.Rpc;
@@ -104,11 +105,7 @@ namespace FishNet.CodeGenerating
         /// <param name="msg"></param>
         internal void LogWarning(string msg)
         {
-#if UNITY_2020_1_OR_NEWER
-            Diagnostics.AddWarning(msg);
-#else
-            Debug.LogWarning(msg);
-#endif
+            Console.Error.WriteLine($"WARN: {msg}");
         }
         /// <summary>
         /// Logs an error.
@@ -116,11 +113,7 @@ namespace FishNet.CodeGenerating
         /// <param name="msg"></param>
         internal void LogError(string msg)
         {
-#if UNITY_2020_1_OR_NEWER
-            Diagnostics.AddError(msg);
-#else
-            Debug.LogError(msg);
-#endif
+            Console.Error.WriteLine($"ERROR: {msg}");
         }
         #endregion
 
