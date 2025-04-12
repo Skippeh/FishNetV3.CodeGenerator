@@ -1,4 +1,4 @@
-﻿namespace FishNet.CodeGenerator;
+﻿namespace FishNet.CodeGenerator.Cli;
 
 public enum ProcessResult
 {

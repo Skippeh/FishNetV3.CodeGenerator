@@ -22,6 +22,8 @@ namespace FishNet.CodeGenerating.ILCore
         internal const string RUNTIME_ASSEMBLY_NAME = "FishNet.Runtime";
         #endregion
 
+        public List<string> AssemblySearchPaths { get; set; } = [];
+
         public override bool WillProcess(ICompiledAssembly compiledAssembly)
         {
             if (compiledAssembly.Name.StartsWith("Unity."))
@@ -49,7 +51,9 @@ namespace FishNet.CodeGenerating.ILCore
         public override ILPostProcessor GetInstance() => this;
         public override ILPostProcessResult Process(ICompiledAssembly compiledAssembly)
         {
-            AssemblyDefinition assemblyDef = ILCoreHelper.GetAssemblyDefinition(compiledAssembly);
+            var resolver = new PostProcessorAssemblyResolver(compiledAssembly);
+            resolver.AssemblySearchPaths = AssemblySearchPaths;
+            AssemblyDefinition assemblyDef = ILCoreHelper.GetAssemblyDefinition(compiledAssembly, resolver);
             if (assemblyDef == null)
                 return null;
 

@@ -19,17 +19,18 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Reference Include="FishNet.CodeAnalysis">
-      <HintPath>Plugins\CodeAnalysis\FishNet.CodeAnalysis.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  
-  <ItemGroup>
     <PackageReference Include="UnityEngine.Modules" Version="2022.3.32" IncludeAssets="compile" />
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\GameKit.Dependencies\GameKit.Dependencies.csproj" />
+    <Reference Include="FishNet.CodeAnalysis">
+      <HintPath>Plugins\CodeAnalysis\FishNet.CodeAnalysis.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\GameKit.Dependencies\GameKit.Dependencies.csproj" IncludeAssets="compile" />
   </ItemGroup>
 
 </Project>

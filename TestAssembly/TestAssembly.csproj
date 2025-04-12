@@ -9,22 +9,14 @@
             https://nuget.bepinex.dev/v3/index.json;
             https://nuget.samboy.dev/v3/index.json
         </RestoreAdditionalProjectSources>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
     
     <ItemGroup>
-      <Reference Include="FishNet.Runtime">
-        <HintPath>..\..\Game\Schedule I_Data\Managed\FishNet.Runtime.dll</HintPath>
-      </Reference>
-      <Reference Include="Unity.Timeline">
-        <HintPath>..\..\Game\Schedule I_Data\Managed\Unity.Timeline.dll</HintPath>
-      </Reference>
-      <Reference Include="UnityEngine">
-        <HintPath>..\..\Game\Schedule I_Data\Managed\UnityEngine.dll</HintPath>
-      </Reference>
-      <Reference Include="UnityEngine.CoreModule">
-        <HintPath>..\..\Game\Schedule I_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-      </Reference>
+      <ProjectReference Include="..\FishNet.Runtime\FishNet.Runtime.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="UnityEngine.Modules" Version="2022.3.32" IncludeAssets="compile" />
     </ItemGroup>
 
 </Project>

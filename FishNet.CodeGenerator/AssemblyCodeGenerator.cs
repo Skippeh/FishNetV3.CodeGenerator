@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using FishNet.CodeGenerating;
 using FishNet.CodeGenerating.ILCore;
 using Mono.Cecil;
 using Unity.CompilationPipeline.Common.Diagnostics;
@@ -12,10 +13,32 @@ namespace FishNet.CodeGenerator
 {
     public static class AssemblyCodeGenerator
     {
-        public static ProcessResult ProcessFile(string assemblyPath, string outputPath)
+        private static bool ResolverInitialized;
+        
+        public static ILPostProcessResult? ProcessFile(string assemblyPath, string outputPath, ICollection<string> assemblySearchPaths)
         {
             var compiledAssembly = ReadCompiledAssembly(assemblyPath);
             var processor = new FishNetILPP();
+            processor.AssemblySearchPaths.AddRange(assemblySearchPaths.Select(path => PathRelativeToAssemblyPath(assemblyPath, path)));
+            
+            string[] extraSearchPaths = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(x => x.Location)
+                .Select(Path.GetDirectoryName)
+                .Distinct()
+                .ToArray();
+
+            processor.AssemblySearchPaths = processor.AssemblySearchPaths.Union(extraSearchPaths).ToList();
+
+            string assemblyPathDir = Path.GetFullPath(Path.GetDirectoryName(assemblyPath)!);
+
+            if (!processor.AssemblySearchPaths.Contains(assemblyPathDir))
+                processor.AssemblySearchPaths.Add(assemblyPathDir);
+            
+            if (!ResolverInitialized)
+            {
+                ResolverInitialized = true;
+                GeneratorAssemblyResolver.Initialize(processor.AssemblySearchPaths.ToList());
+            }
 
             if (processor.WillProcess(compiledAssembly))
             {
@@ -23,28 +46,8 @@ namespace FishNet.CodeGenerator
 
                 if (result == null)
                 {
-                    Console.Error.WriteLine("Failed to process (Process() returned null)");
-                    return ProcessResult.UnknownError;
+                    return null;
                 }
-
-                var builder = new StringBuilder();
-                bool hasErrors = false;
-
-                foreach (var diagnostic in result.Diagnostics)
-                {
-                    if (diagnostic.DiagnosticType == DiagnosticType.Error)
-                    {
-                        hasErrors = true;
-                    }
-                    
-                    builder.AppendLine($"{diagnostic.File}:{diagnostic.Line}:{diagnostic.Column} {diagnostic.MessageData}");
-                }
-
-                if (builder.Length > 0)
-                    Console.Error.WriteLine(builder.ToString());
-
-                if (hasErrors)
-                    return ProcessResult.HasDiagnosticErrors;
 
                 using var file = File.Create(outputPath);
                 file.Write(result.InMemoryAssembly.PeData);
@@ -54,9 +57,22 @@ namespace FishNet.CodeGenerator
                     using var pdbFile = File.Create(Path.ChangeExtension(outputPath, "pdb"));
                     pdbFile.Write(result.InMemoryAssembly.PdbData);
                 }
+                
+                return result;
             }
 
-            return ProcessResult.Ok;
+            return null;
+        }
+
+        private static string PathRelativeToAssemblyPath(string assemblyPath, string searchDir)
+        {
+            if (File.Exists(searchDir))
+                searchDir = Path.GetDirectoryName(searchDir)!;
+            
+            if (Path.IsPathRooted(searchDir))
+                return searchDir;
+
+            return Path.Combine(Path.GetFullPath(Path.GetDirectoryName(assemblyPath)!), searchDir);
         }
 
         private static CompiledAssembly ReadCompiledAssembly(string filePath)
@@ -77,7 +93,7 @@ namespace FishNet.CodeGenerator
 
             foreach (AssemblyNameReference reference in assemblyDef.MainModule.AssemblyReferences)
             {
-                references.Add(reference.Name);
+                references.Add($"{reference.Name}.dll");
             }
 
             var compiledAssembly = new CompiledAssembly

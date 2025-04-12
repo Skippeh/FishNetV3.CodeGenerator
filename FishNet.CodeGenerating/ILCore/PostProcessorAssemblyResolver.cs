@@ -8,8 +8,15 @@ using Unity.CompilationPipeline.Common.ILPostProcessing;
 
 namespace FishNet.CodeGenerating
 {
-    internal class PostProcessorAssemblyResolver : BaseAssemblyResolver
+    public class PostProcessorAssemblyResolver : BaseAssemblyResolver
     {
+        public List<string> AssemblySearchPaths = [];
+
+        private static readonly string[] IgnoreResolveAssemblies =
+        [
+            "FishNet.Runtime.dll"
+        ];
+        
         private readonly string[] m_AssemblyReferences;
         private readonly Dictionary<string, AssemblyDefinition> m_AssemblyCache = new Dictionary<string, AssemblyDefinition>();
         private readonly ICompiledAssembly m_CompiledAssembly;
@@ -21,12 +28,13 @@ namespace FishNet.CodeGenerating
             m_AssemblyReferences = compiledAssembly.References;
         }
 
-        public void Dispose() { }
+        public override AssemblyDefinition Resolve(AssemblyNameReference name) => Resolve(name, new ReaderParameters(ReadingMode.Deferred));
 
-        public AssemblyDefinition Resolve(AssemblyNameReference name) => Resolve(name, new ReaderParameters(ReadingMode.Deferred));
-
-        public AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters)
+        public override AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters)
         {
+            if (name.Name == "mscorlib" || name.Name == "netstandard")
+                return base.Resolve(name, parameters);
+            
             lock (m_AssemblyCache)
             {
                 if (name.Name == m_CompiledAssembly.Name)
@@ -35,10 +43,22 @@ namespace FishNet.CodeGenerating
                 }
 
                 var fileName = FindFile(name);
+                bool pathResolved = false;
+
+                if (fileName == null)
+                {
+                    fileName = ResolveAssemblyPath($"{name.Name}.dll");
+                    pathResolved = true;
+                }
+                
                 if (fileName == null)
                 {
                     return base.Resolve(name, parameters);
                 }
+                
+                // Try to resolve absolute file path to assembly
+                if (!pathResolved)
+                    fileName = ResolveAssemblyPath(fileName);
 
                 var lastWriteTime = File.GetLastWriteTime(fileName);
                 var cacheKey = $"{fileName}{lastWriteTime}";
@@ -61,6 +81,29 @@ namespace FishNet.CodeGenerating
 
                 return assemblyDefinition;
             }
+        }
+
+        private string ResolveAssemblyPath(string assemblyPath)
+        {
+            if (Path.IsPathRooted(assemblyPath))
+                return assemblyPath;
+
+            if (IgnoreResolveAssemblies.Contains(assemblyPath))
+                return assemblyPath;
+
+            foreach (var searchPath in AssemblySearchPaths)
+            {
+                var filePath = Path.Combine(searchPath, assemblyPath);
+
+                if (File.Exists(filePath))
+                {
+                    Console.WriteLine($"Resolved assembly {assemblyPath}: {filePath}");
+                    return filePath;
+                }
+            }
+
+            Console.WriteLine($"Failed to resolve path to assembly: {assemblyPath}");
+            return assemblyPath;
         }
 
         private string FindFile(AssemblyNameReference name)
@@ -94,7 +137,7 @@ namespace FishNet.CodeGenerating
 
         private static MemoryStream MemoryStreamFor(string fileName)
         {
-            return Retry(10, TimeSpan.FromSeconds(1), () =>
+            return Retry(3, TimeSpan.FromSeconds(1), () =>
             {
                 byte[] byteArray;
                 using (var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))

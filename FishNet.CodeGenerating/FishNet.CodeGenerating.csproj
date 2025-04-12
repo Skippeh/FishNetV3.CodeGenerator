@@ -4,14 +4,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
-
-  <Import Project="$(SolutionDir)DevVars.targets" />
-
-  <ItemGroup>
-    <Reference Include="$(UnityFolder)\Editor\Data\Managed\UnityEngine\UnityEngine*.dll" />
-    <Reference Include="$(UnityFolder)\Editor\Data\Resources\PackageManager\ProjectTemplates\libcache\com.unity.template.3d-*\ScriptAssemblies\UnityEngine.UI.dll" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FishNet.Runtime\FishNet.Runtime.csproj" />
@@ -20,6 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.32" IncludeAssets="compile" />
   </ItemGroup>
 
 </Project>

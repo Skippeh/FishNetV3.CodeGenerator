@@ -9,14 +9,14 @@
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="UnityEngine.Modules" Version="2022.3.32" IncludeAssets="compile" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
+  
+  <ItemGroup>    
+    <Reference Include="..\libs\UnityEngine.UI.dll">
+      <Private>false</Private>
     </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.32"  IncludeAssets="compile" />
   </ItemGroup>
 </Project>
