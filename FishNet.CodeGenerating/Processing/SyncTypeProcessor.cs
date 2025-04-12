@@ -64,11 +64,11 @@ namespace FishNet.CodeGenerating.Processing
             foreach (FieldDefinition fd in fieldDefs)
             {
                 //Check if uses old attributes first.
-                if (HasSyncTypeAttributeUnchecked(fd))
+                /*if (HasSyncTypeAttributeUnchecked(fd))
                 {
                     base.LogError($"SyncType {fd.Name} on type {fd.DeclaringType.FullName} implements [SyncVar] or [SyncObject]. These attributes are no longer supported as of version 4. Please see Break Solutions within the documentation to resolve these errors.");
                     continue;
-                }
+                }*/
                 SyncType st = GetSyncType(fd);
                 //Not a sync type field.
                 if (st == SyncType.Unset)
