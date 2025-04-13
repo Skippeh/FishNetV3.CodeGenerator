@@ -3,6 +3,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System.IO;
 using System.Linq;
+using Unity.CompilationPipeline.Common.Diagnostics;
 
 namespace FishNet.CodeGenerator.MSBuild;
 
@@ -37,11 +38,11 @@ public class GenerateCodeTask : Task
             {
                 referenceFileDirectories.Add(directory);
 
-                LogMessage(directory);
+                /*LogMessage(directory);
                 foreach (string metadataName in refItem.MetadataNames)
                 {
                     LogMessage($"- {metadataName}: {refItem.GetMetadata(metadataName)}");
-                }
+                }*/
             }
         }
 
@@ -58,6 +59,22 @@ public class GenerateCodeTask : Task
         {
             AssemblySearchPaths = referenceFileDirectories
         });
+
+        if (result == null)
+        {
+            Log.LogError("Unknown error occurred while processing assembly file");
+            return false;
+        }
+
+        foreach (var diagnostic in result.Diagnostics)
+        {
+            if (diagnostic.DiagnosticType == DiagnosticType.Error)
+                Log.LogError(null, null, null, diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Line, diagnostic.Column, diagnostic.MessageData);
+            else
+                Log.LogWarning(null, null, null, diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Line, diagnostic.Column, diagnostic.MessageData);
+        }
+
+        //return result.Diagnostics.TrueForAll(d => d.DiagnosticType != DiagnosticType.Error);
 
         Log.LogError("Error to avoid having to edit TestPlugin before every test");
         return false;
