@@ -15,7 +15,6 @@ namespace FishNet.CodeGenerating
 
         private static readonly string[] IgnoreResolveAssemblies =
         [
-            "FishNet.Runtime.dll"
         ];
 
         private readonly string[] m_AssemblyReferences;
@@ -33,7 +32,7 @@ namespace FishNet.CodeGenerating
 
         public override AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters)
         {
-            if (name.Name == "mscorlib" || name.Name == "netstandard")
+            if (name.Name == "mscorlib" || name.Name == "netstandard" || name.Name.StartsWith("System"))
                 return base.Resolve(name, parameters);
 
             lock (m_AssemblyCache)
