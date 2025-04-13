@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using Unity.CompilationPipeline.Common.ILPostProcessing;
 
@@ -16,7 +17,7 @@ namespace FishNet.CodeGenerating
         [
             "FishNet.Runtime.dll"
         ];
-        
+
         private readonly string[] m_AssemblyReferences;
         private readonly Dictionary<string, AssemblyDefinition> m_AssemblyCache = new Dictionary<string, AssemblyDefinition>();
         private readonly ICompiledAssembly m_CompiledAssembly;
@@ -34,7 +35,7 @@ namespace FishNet.CodeGenerating
         {
             if (name.Name == "mscorlib" || name.Name == "netstandard")
                 return base.Resolve(name, parameters);
-            
+
             lock (m_AssemblyCache)
             {
                 if (name.Name == m_CompiledAssembly.Name)
@@ -50,12 +51,12 @@ namespace FishNet.CodeGenerating
                     fileName = ResolveAssemblyPath($"{name.Name}.dll");
                     pathResolved = true;
                 }
-                
+
                 if (fileName == null)
                 {
                     return base.Resolve(name, parameters);
                 }
-                
+
                 // Try to resolve absolute file path to assembly
                 if (!pathResolved)
                     fileName = ResolveAssemblyPath(fileName);
@@ -89,7 +90,10 @@ namespace FishNet.CodeGenerating
                 return assemblyPath;
 
             if (IgnoreResolveAssemblies.Contains(assemblyPath))
-                return assemblyPath;
+            {
+                var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                return Path.Combine(currentDirectory!, assemblyPath);
+            }
 
             foreach (var searchPath in AssemblySearchPaths)
             {
