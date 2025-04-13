@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <DebugType>embedded</DebugType>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="FishNet.CodeGenerator.MSBuild.props">
+          <Pack>true</Pack>
+          <PackagePath>build/</PackagePath>
+        </Content>
+        <Content
+            Include="$(OutputPath)/*.dll;$(OutputPath)/*.pdb"
+            Pack="true"
+            PackagePath="build/"
+        />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.13.9" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\FishNet.CodeGenerating\FishNet.CodeGenerating.csproj" />
+      <ProjectReference Include="..\FishNet.CodeGenerator\FishNet.CodeGenerator.csproj" />
+    </ItemGroup>
+</Project>

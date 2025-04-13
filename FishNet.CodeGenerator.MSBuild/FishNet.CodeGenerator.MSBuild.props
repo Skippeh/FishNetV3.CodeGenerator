@@ -1,0 +1,29 @@
+<Project>
+    <PropertyGroup>
+        <_FishNetCodeGeneratorPropsFile>$(MSBuildThisFile)</_FishNetCodeGeneratorPropsFile>
+        <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\lib\netstandard2.1\$(MSBuildThisFileName).dll</_FishNetCodeGenerator_TaskAssembly>
+    </PropertyGroup>
+    
+    <UsingTask TaskName="GenerateCodeTask" AssemblyFile="$(_FishNetCodeGenerator_TaskAssembly)" />
+    
+    <Target Name="GenerateFishNetCode" AfterTargets="Build">
+        <Error Condition="'$(UsingMicrosoftNETSdk)' != 'true'" Text="The FishNet.CodeGenerator.MSBuild package can only be used with SDK-style projects." />
+        
+        <PropertyGroup>
+            <Extension Condition="'$(OutputType)' == 'Exe'">exe</Extension>
+            <Extension Condition="'$(OutputType)' == 'Winexe'">exe</Extension>
+            <Extension Condition="'$(OutputType)' == 'Library'">dll</Extension>
+            <Extension Condition="'$(OutputType)' == 'Module'">dll</Extension>
+        </PropertyGroup>
+        
+        <GenerateCodeTask
+                IntermediateOutputFilePath="$(IntermediateOutputPath)$(AssemblyName).$(Extension)"
+                AssemblySearchPaths="@(FishNetCodeGenAssemblySearchPaths)"
+                ReferencePath="@(ReferencePath)"
+        />
+    </Target>
+    
+    <ItemDefinitionGroup>
+        <FishNetCodeGenAssemblySearchPaths Visible="true" />
+    </ItemDefinitionGroup>
+</Project>
