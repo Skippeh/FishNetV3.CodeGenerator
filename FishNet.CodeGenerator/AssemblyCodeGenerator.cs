@@ -13,7 +13,7 @@ namespace FishNet.CodeGenerator
 {
     public static class AssemblyCodeGenerator
     {
-        private static bool AssemblyResolvedInitialized;
+        private static bool AssemblyResolverInitialized;
         
         public static ILPostProcessResult? ProcessFile(string assemblyPath, string outputPath, ProcessOptions options)
         {
@@ -34,9 +34,9 @@ namespace FishNet.CodeGenerator
             if (!processor.AssemblySearchPaths.Contains(assemblyPathDir))
                 processor.AssemblySearchPaths.Add(assemblyPathDir);
             
-            if (!AssemblyResolvedInitialized)
+            if (!AssemblyResolverInitialized)
             {
-                AssemblyResolvedInitialized = true;
+                AssemblyResolverInitialized = true;
                 GeneratorAssemblyResolver.Initialize();
             }
 
