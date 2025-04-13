@@ -189,6 +189,9 @@ namespace FishNet.CodeGenerating.ILCore
             {
                 var assemblyDef = session.Module.AssemblyResolver.Resolve(assemblyName);
 
+                if (assemblyDef.MainModule.AssemblyReferences.All(x => x.Name != "FishNet.Runtime"))
+                    continue;
+
                 foreach (var type in assemblyDef.MainModule.Types)
                     results.Add(type);
             }
