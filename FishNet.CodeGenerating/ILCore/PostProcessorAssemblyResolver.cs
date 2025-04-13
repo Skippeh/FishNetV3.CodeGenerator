@@ -32,8 +32,8 @@ namespace FishNet.CodeGenerating
 
         public override AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters)
         {
-            if (name.Name == "mscorlib" || name.Name == "netstandard" || name.Name.StartsWith("System"))
-                return base.Resolve(name, parameters);
+            if (name.Name == "netstandard" || name.Name.StartsWith("System"))
+                return Resolve(new AssemblyNameReference("mscorlib", new Version()));
 
             lock (m_AssemblyCache)
             {
