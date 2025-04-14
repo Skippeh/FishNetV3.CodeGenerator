@@ -26,9 +26,6 @@ public class GenerateCodeTask : Task
             string? fileName = refItem.GetMetadata("FullPath");
             bool externallyResolved = refItem.GetMetadataBool("ExternallyResolved") ?? false;
 
-            if (externallyResolved)
-                ;//continue;
-
             string? directory = Path.GetDirectoryName(fileName);
 
             if (directory == null)
@@ -36,13 +33,10 @@ public class GenerateCodeTask : Task
 
             if (!referenceFileDirectories.Contains(directory))
             {
-                referenceFileDirectories.Add(directory);
-
-                /*LogMessage(directory);
-                foreach (string metadataName in refItem.MetadataNames)
-                {
-                    LogMessage($"- {metadataName}: {refItem.GetMetadata(metadataName)}");
-                }*/
+                if (externallyResolved)
+                    referenceFileDirectories.Add(directory);
+                else
+                    referenceFileDirectories.Insert(0, directory);
             }
         }
 
