@@ -1,4 +1,5 @@
-﻿using FishNet.Object;
+﻿using FishNet.Connection;
+using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Serializing;
 using FishNet.Transporting;
@@ -8,9 +9,11 @@ namespace TestPlugin;
 public class TestNetworkBehaviour : NetworkBehaviour
 {
     [SyncVar(Channel = Channel.Reliable, ReadPermissions = ReadPermission.Observers, WritePermissions = WritePermission.ServerOnly, OnChange = nameof(FloatVarChanged))]
+#pragma warning disable CS0169 // Field is never used
     private float FloatVar;
+#pragma warning restore CS0169 // Field is never used
 
-    private void FloatVarChanged(float oldValue, float newValue, float isServerWithInvalidType)
+    private void FloatVarChanged(float oldValue, float newValue, bool asServer)
     {
     }
 
@@ -25,7 +28,7 @@ public class TestNetworkBehaviour : NetworkBehaviour
     }
 
     [TargetRpc]
-    private void TargetRpc(CustomData data)
+    private void TargetRpc(NetworkConnection conn, CustomData data)
     {
     }
 }
