@@ -10,7 +10,7 @@ public class TestNetworkBehaviour : NetworkBehaviour
     [SyncVar(Channel = Channel.Reliable, ReadPermissions = ReadPermission.Observers, WritePermissions = WritePermission.ServerOnly, OnChange = nameof(FloatVarChanged))]
     private float FloatVar;
 
-    private void FloatVarChanged(float oldValue, float newValue, float isServer)
+    private void FloatVarChanged(float oldValue, float newValue, float isServerWithInvalidType)
     {
     }
 
