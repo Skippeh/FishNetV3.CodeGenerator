@@ -10,6 +10,8 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Version>1.0.0</Version>
         <Description>Code generation for FishNet V3 that works outside of the unity editor. Made specifically for modding games that use Fishnet V3.</Description>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,6 +19,7 @@
           <Pack>true</Pack>
           <PackagePath>build/</PackagePath>
         </Content>
+        <None Include="$(SolutionDir)LICENSE" Pack="true" PackagePath="" />
     </ItemGroup>
 
     <ItemGroup>
