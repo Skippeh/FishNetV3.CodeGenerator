@@ -105,7 +105,11 @@ namespace FishNet.CodeGenerating
         /// <param name="msg"></param>
         internal void LogWarning(string msg)
         {
-            Console.Error.WriteLine($"WARN: {msg}");
+            Diagnostics.Add(new DiagnosticMessage
+            {
+                DiagnosticType = DiagnosticType.Warning,
+                MessageData = msg
+            });
         }
         /// <summary>
         /// Logs an error.
@@ -113,7 +117,11 @@ namespace FishNet.CodeGenerating
         /// <param name="msg"></param>
         internal void LogError(string msg)
         {
-            Console.Error.WriteLine($"ERROR: {msg}");
+            Diagnostics.Add(new DiagnosticMessage
+            {
+                DiagnosticType = DiagnosticType.Error,
+                MessageData = msg
+            });
         }
         #endregion
 
