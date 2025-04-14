@@ -13,6 +13,7 @@ using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using SR = System.Reflection;
 
@@ -314,7 +315,10 @@ namespace FishNet.CodeGenerating.Helping
         {
             if (md.Parameters.Count == 0)
             {
-                base.LogError($"Method {md.FullName} cannot be made an extension method because it has no parameters.");
+                base.LogError(
+                    $"Method {md.FullName} cannot be made an extension method because it has no parameters.",
+                    md.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return;
             }
 
@@ -764,7 +768,10 @@ namespace FishNet.CodeGenerating.Helping
             List<Instruction> instructions = new List<Instruction>();
             if (loggingType == LoggingType.Off)
             {
-                base.LogError($"LogMessage called with LoggingType.Off.");
+                base.LogError(
+                    $"LogMessage called with LoggingType.Off.",
+                    md.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return instructions;
             }
 
@@ -884,7 +891,7 @@ namespace FishNet.CodeGenerating.Helping
         {
             if (lt == LoggingType.Off)
             {
-                base.LogError($"Log attempt called with LoggingType.Off.");
+                base.LogError($"Log attempt called with LoggingType.Off.", null);
                 return false;
             }
 
@@ -1000,7 +1007,10 @@ namespace FishNet.CodeGenerating.Helping
                 MethodDefinition constructorMethodDef = type.GetDefaultConstructor(base.Session);
                 if (constructorMethodDef == null)
                 {
-                    base.LogError($"{type.Name} can't be deserialized because a default constructor could not be found. Create a default constructor or a custom serializer/deserializer.");
+                    base.LogError(
+                        $"{type.Name} can't be deserialized because a default constructor could not be found. Create a default constructor or a custom serializer/deserializer.",
+                        null
+                    );
                     return;
                 }
 
@@ -1114,12 +1124,18 @@ namespace FishNet.CodeGenerating.Helping
                 * comparers. Let user know they must make their own. */
                 if (dataTr.IsGenericInstance)
                 {
-                    base.LogError($"Equality comparers cannot be automatically generated for generic types. Create a custom comparer for {dataTr.FullName}.");
+                    base.LogError(
+                        $"Equality comparers cannot be automatically generated for generic types. Create a custom comparer for {dataTr.FullName}.",
+                        null
+                    );
                     return null;
                 }
                 if (dataTr.IsArray)
                 {
-                    base.LogError($"Equality comparers cannot be automatically generated for arrays. Create a custom comparer for {dataTr.FullName}.");
+                    base.LogError(
+                        $"Equality comparers cannot be automatically generated for arrays. Create a custom comparer for {dataTr.FullName}.",
+                        null
+                    );
                     return null;
                 }
 
@@ -1152,7 +1168,10 @@ namespace FishNet.CodeGenerating.Helping
                     //Create a class or struct comparer for the container.
                     if (!dataTr.IsClassOrStruct(base.Session))
                     {
-                        base.Session.LogError($"Generic data type {dataTr} was expected to be in a container but is not.");
+                        base.Session.LogError(
+                            $"Generic data type {dataTr} was expected to be in a container but is not.",
+                            null
+                        );
                         return;
                     }
                     else
@@ -1173,7 +1192,7 @@ namespace FishNet.CodeGenerating.Helping
                 //Unhandled type.
                 else
                 {
-                    base.Session.LogError($"Comparer data type {dataTr.FullName} is unhandled.");
+                    base.Session.LogError($"Comparer data type {dataTr.FullName} is unhandled.", null);
                     return;
                 }
 
@@ -1183,7 +1202,10 @@ namespace FishNet.CodeGenerating.Helping
                     GenericInstanceType git = dataTr as GenericInstanceType;
                     if (git == null || git.GenericArguments.Count == 0)
                     {
-                        base.LogError($"Comparer data is generic but generic type returns null, or has no generic arguments.");
+                        base.LogError(
+                            $"Comparer data for {dataTr.FullName} is generic but generic type returns null, or has no generic arguments.",
+                            null
+                        );
                         return;
                     }
                     foreach (TypeReference tr in git.GenericArguments)
@@ -1260,7 +1282,10 @@ namespace FishNet.CodeGenerating.Helping
                                 MethodDefinition cMd = tr.CachedResolve(base.Session).GetMethod("op_Equality");
                                 if (cMd == null)
                                 {
-                                    base.LogError($"Type {tr.FullName} implements IEquatable but the comparer method could not be found.");
+                                    base.LogError(
+                                        $"Type {tr.FullName} implements IEquatable but the comparer method could not be found.",
+                                        null
+                                    );
                                     return;
                                 }
                                 else

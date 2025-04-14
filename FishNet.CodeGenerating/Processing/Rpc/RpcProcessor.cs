@@ -84,7 +84,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
             {
                 if (rpcCount >= NetworkBehaviourHelper.MAX_RPC_ALLOWANCE)
                 {
-                    base.LogError($"{typeDef.FullName} and inherited types exceed {NetworkBehaviourHelper.MAX_RPC_ALLOWANCE} RPC methods. Only {NetworkBehaviourHelper.MAX_RPC_ALLOWANCE} RPC methods are supported per inheritance hierarchy.");
+                    base.LogError(
+                        $"{typeDef.FullName} and inherited types exceed {NetworkBehaviourHelper.MAX_RPC_ALLOWANCE} RPC methods. Only {NetworkBehaviourHelper.MAX_RPC_ALLOWANCE} RPC methods are supported per inheritance hierarchy.",
+                        md.DebugInformation.SequencePoints.FirstOrDefault()
+                    );
                     return false;
                 }
 
@@ -105,7 +108,7 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                      * single check is performed here. */
                     if (cr.RpcType != RpcType.Observers && cr.RpcType != RpcType.Server && cr.RpcType != RpcType.Target)
                     {
-                        base.LogError($"RpcType of {cr.RpcType.ToString()} is unhandled.");
+                        base.LogError($"RpcType of {cr.RpcType.ToString()} is unhandled.", cr.OriginalMethodDef.DebugInformation.SequencePoints.FirstOrDefault());
                         break;
                     }
 
@@ -912,7 +915,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                     MethodReference baseLogicMd = createdMethodDef.DeclaringType.GetMethodDefinitionInAnyBase(base.Session, createdMethodDef.Name);
                     if (baseLogicMd == null)
                     {
-                        base.LogError($"Could not find base method for {createdMethodDef.Name}.");
+                        base.LogError(
+                            $"Could not find base method for {createdMethodDef.Name}.",
+                            originalMethodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                        );
                         return;
                     }
 
@@ -1047,8 +1053,14 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                     break;
                 }
             }
+
             if (usedByref)
-                base.LogWarning($"Method {methodDef.FullName} takes an argument by reference. While this is supported, using BufferLast in addition to by reference arguements will buffer the value as it was serialized, not as it is when sending buffered.");
+            {
+                base.LogWarning(
+                    $"Method {methodDef.FullName} takes an argument by reference. While this is supported, using BufferLast in addition to by reference arguements will buffer the value as it was serialized, not as it is when sending buffered.",
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
+            }
 
             insts.Add(processor.Create(OpCodes.Ldc_I4, bufferLast.ToInt()));
             insts.Add(processor.Create(OpCodes.Ldc_I4, excludeServer.ToInt()));

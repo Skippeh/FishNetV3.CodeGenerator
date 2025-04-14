@@ -107,8 +107,8 @@ namespace FishNet.CodeGenerating.ILCore
                 foreach (FieldDefinition item in session.DifferentAssemblySyncVars)
                     sb.AppendLine($"Field {item.Name} within {item.DeclaringType.FullName} in assembly {item.Module.Name}.");
 
-                session.LogWarning("v------- IMPORTANT -------v");
-                session.LogWarning(sb.ToString());
+                session.LogWarning("v------- IMPORTANT -------v", null);
+                session.LogWarning(sb.ToString(), null);
                 session.DifferentAssemblySyncVars.Clear();
             }
 
@@ -285,7 +285,10 @@ namespace FishNet.CodeGenerating.ILCore
                 TypeReference typeRef = session.ImportReference(td);
                 bool canSerialize = session.GetClass<GeneralHelper>().HasSerializerAndDeserializer(typeRef, true);
                 if (!canSerialize)
-                    session.LogError($"Broadcast {td.Name} does not support serialization. Use a supported type or create a custom serializer.");
+                    session.LogError(
+                        $"Broadcast {td.Name} does not support serialization. Use a supported type or create a custom serializer.",
+                        null
+                    );
                 else
                     modified = true;
             }

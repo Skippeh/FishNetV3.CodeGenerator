@@ -1,4 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
+using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.CodeGenerating.ILCore;
 using FishNet.Object;
@@ -303,7 +303,10 @@ namespace FishNet.CodeGenerating.Helping
             //Check if writer already exist.
             if (_delegatedTypes.Contains(dataTypeRef))
             {
-                base.LogError($"Generic write already created for {dataTypeRef.FullName}.");
+                base.LogError(
+                    $"Generic write already created for {dataTypeRef.FullName}.",
+                    null
+                );
                 return;
             }
             else
@@ -438,7 +441,7 @@ namespace FishNet.CodeGenerating.Helping
             //If still null then return could not be generated.
             if (writeMethodRef == null)
             {
-                base.LogError($"Could not create serializer for {typeRef.FullName}.");
+                base.LogError($"Could not create serializer for {typeRef.FullName}.", null);
             }
             //Otherwise, check if generic and create writes for generic pararameters.
             else if (typeRef.IsGenericInstance)
@@ -449,7 +452,7 @@ namespace FishNet.CodeGenerating.Helping
                     MethodReference result = GetOrCreateWriteMethodReference(item);
                     if (result == null)
                     {
-                        base.LogError($"Could not create serializer for {item.FullName}.");
+                        base.LogError($"Could not create serializer for {item.FullName}.", null);
                         return null;
                     }
                 }
@@ -619,7 +622,7 @@ namespace FishNet.CodeGenerating.Helping
                 }
                 else
                 {
-                    base.LogError($"{pooledWriterDef.GetType().FullName} is not a valid writerDef. Type must be VariableDefinition or ParameterDefinition.");
+                    base.LogError($"{pooledWriterDef.GetType().FullName} is not a valid writerDef. Type must be VariableDefinition or ParameterDefinition.", null);
                     return new List<Instruction>();
                 }
                 insts.Add(processor.Create(OpCodes.Ldarg, valueParameterDef));
@@ -646,7 +649,7 @@ namespace FishNet.CodeGenerating.Helping
             }
             else
             {
-                base.LogError($"Writer not found for {valueParameterDef.ParameterType.FullName}.");
+                base.LogError($"Writer not found for {valueParameterDef.ParameterType.FullName}.", null);
                 return new List<Instruction>();
             }
         }
@@ -697,7 +700,7 @@ namespace FishNet.CodeGenerating.Helping
             }
             else
             {
-                base.LogError($"Writer not found for {fieldDef.FieldType.FullName}.");
+                base.LogError($"Writer not found for {fieldDef.FieldType.FullName}.", null);
             }
         }
 
@@ -740,7 +743,7 @@ namespace FishNet.CodeGenerating.Helping
             }
             else
             {
-                base.LogError($"Writer not found for {returnTr.FullName}.");
+                base.LogError($"Writer not found for {returnTr.FullName}.", null);
             }
         }
 
@@ -1091,7 +1094,7 @@ namespace FishNet.CodeGenerating.Helping
                 //Writer not found.
                 if (mr == null)
                 {
-                    base.LogError($"Writer could not be found or created for type {gaTr.FullName}.");
+                    base.LogError($"Writer could not be found or created for type {gaTr.FullName}.", null);
                     return null;
                 }
 
@@ -1118,7 +1121,7 @@ namespace FishNet.CodeGenerating.Helping
             //Not found.
             if (instancedWriteMr == null)
             {
-                base.LogError($"Instanced writer not found for SerializerType {st} on object {objectTr.Name}.");
+                base.LogError($"Instanced writer not found for SerializerType {st} on object {objectTr.Name}.", null);
                 return null;
             }
 

@@ -32,7 +32,7 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                     return datas[i].Attribute;
             }
 
-            session.LogError($"RpcType {rpcType} not found in datas.");
+            session.LogError($"RpcType {rpcType} not found in datas.", null);
             return null;
         }
 

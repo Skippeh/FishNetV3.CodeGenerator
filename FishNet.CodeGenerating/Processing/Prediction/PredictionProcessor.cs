@@ -1,4 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
+using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.CodeGenerating.Processing.Rpc;
@@ -13,6 +13,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 using System.Collections.Generic;
+using System.Linq;
 using SR = System.Reflection;
 
 namespace FishNet.CodeGenerating.Processing
@@ -231,7 +232,7 @@ namespace FishNet.CodeGenerating.Processing
             {
                 bool isPrivate = md.Attributes.HasFlag(MethodAttributes.Private);
                 if (!isPrivate)
-                    base.LogError($"Method {md.Name} within {typeDef.Name} is a prediction method and must be private.");
+                    base.LogError($"Method {md.Name} within {typeDef.Name} is a prediction method and must be private.", md.DebugInformation.SequencePoints.FirstOrDefault());
                 return isPrivate;
             }
 
@@ -239,14 +240,14 @@ namespace FishNet.CodeGenerating.Processing
             {
                 bool alreadyFound = (md != null);
                 if (alreadyFound)
-                    base.LogError($"{typeDef.Name} contains multiple prediction sets; currently only one set is allowed.");
+                    base.LogError($"{typeDef.Name} contains multiple prediction sets; currently only one set is allowed.", null);
 
                 return alreadyFound;
             }
 
             if (!error && ((replicateMd == null) != (reconcileMd == null)))
             {
-                base.LogError($"{typeDef.Name} must contain both a [Replicate] and [Reconcile] method when using prediction.");
+                base.LogError($"{typeDef.Name} must contain both a [Replicate] and [Reconcile] method when using prediction.", null);
                 error = true;
             }
 
@@ -278,7 +279,7 @@ namespace FishNet.CodeGenerating.Processing
             //If replication methods found but this hierarchy already has max.
             if (predictionRpcCount >= NetworkBehaviourHelper.MAX_RPC_ALLOWANCE)
             {
-                base.LogError($"{typeDef.FullName} and inherited types exceed {NetworkBehaviourHelper.MAX_PREDICTION_ALLOWANCE} replicated methods. Only {NetworkBehaviourHelper.MAX_PREDICTION_ALLOWANCE} replicated methods are supported per inheritance hierarchy.");
+                base.LogError($"{typeDef.FullName} and inherited types exceed {NetworkBehaviourHelper.MAX_PREDICTION_ALLOWANCE} replicated methods. Only {NetworkBehaviourHelper.MAX_PREDICTION_ALLOWANCE} replicated methods are supported per inheritance hierarchy.", null);
                 return false;
             }
 
@@ -308,14 +309,14 @@ namespace FishNet.CodeGenerating.Processing
             canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(replicateDataTd.MakeArrayType(), true);
             if (!canSerialize)
             {
-                base.LogError($"Replicate data type {replicateDataTd.Name} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"Replicate data type {replicateDataTd.Name} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
             //Make sure reconcile data can serialize.
             canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(reconcileDataTd, true);
             if (!canSerialize)
             {
-                base.LogError($"Reconcile data type {reconcileDataTd.Name} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"Reconcile data type {reconcileDataTd.Name} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
             //Creates fields for buffers.
@@ -357,7 +358,7 @@ namespace FishNet.CodeGenerating.Processing
             //If ldFld not found.
             if (ldFldInst == null)
             {
-                base.LogError($"{dataTd.FullName} method {getMd.Name} does not return a field type for the Tick. Make a new private field of uint type and return it's value within {getMd.Name}.");
+                base.LogError($"{dataTd.FullName} method {getMd.Name} does not return a field type for the Tick. Make a new private field of uint type and return it's value within {getMd.Name}.", getMd.DebugInformation.SequencePoints.FirstOrDefault());
                 return false;
             }
             //Make sure the field is private.
@@ -366,7 +367,7 @@ namespace FishNet.CodeGenerating.Processing
                 FieldDefinition fd = (FieldDefinition)ldFldInst.Operand;
                 if (!fd.Attributes.HasFlag(FieldAttributes.Private))
                 {
-                    base.LogError($"{dataTd.FullName} method {getMd.Name} returns a tick field but it's not marked as private. Make the field {fd.Name} private.");
+                    base.LogError($"{dataTd.FullName} method {getMd.Name} returns a tick field but it's not marked as private. Make the field {fd.Name} private.", getMd.DebugInformation.SequencePoints.FirstOrDefault());
                     return false;
                 }
             }
@@ -383,7 +384,7 @@ namespace FishNet.CodeGenerating.Processing
             if (!dataTr.CachedResolve(base.Session).ImplementsInterfaceRecursive(base.Session, interfaceName))
             {
                 string name = (isReplicate) ? typeof(IReplicateData).Name : typeof(IReconcileData).Name;
-                base.LogError($"Prediction data type {dataTr.Name} for method {methodDef.Name} in class {methodDef.DeclaringType.Name} must implement the {name} interface.");
+                base.LogError($"Prediction data type {dataTr.Name} for method {methodDef.Name} in class {methodDef.DeclaringType.Name} must implement the {name} interface.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                 interfacesImplemented = false;
             }
         }
@@ -555,7 +556,7 @@ namespace FishNet.CodeGenerating.Processing
             //Data check.
             if (!methodDef.Parameters[0].ParameterType.IsClassOrStruct(base.Session))
             {
-                base.LogError($"Prediction methods must use a class or structure as the first parameter type. Structures are recommended to avoid allocations.");
+                base.LogError($"Prediction methods must use a class or structure as the first parameter type. Structures are recommended to avoid allocations.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                 return true;
             }
             //asServer
@@ -584,9 +585,9 @@ namespace FishNet.CodeGenerating.Processing
             void PrintParameterExpectations()
             {
                 if (replicateMethod)
-                    base.LogError($"Replicate method {methodDef.Name} within {typeDef.Name} requires exactly {count} parameters. In order: replicate data, asServer boolean, channel = Channel.Unreliable, replaying boolean.");
+                    base.LogError($"Replicate method {methodDef.Name} within {typeDef.Name} requires exactly {count} parameters. In order: replicate data, asServer boolean, channel = Channel.Unreliable, replaying boolean.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                 else
-                    base.LogError($"Reconcile method {methodDef.Name} within {typeDef.Name} requires exactly {count} parameters. In order: replicate data, asServer boolean, channel = Channel.Unreliable.");
+                    base.LogError($"Reconcile method {methodDef.Name} within {typeDef.Name} requires exactly {count} parameters. In order: replicate data, asServer boolean, channel = Channel.Unreliable.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
             }
 
             //No errors with parameters.
@@ -699,6 +700,7 @@ namespace FishNet.CodeGenerating.Processing
 
                 MethodReference reconcileClientGim = nbh.Reconcile_Client_MethodRef.GetMethodReference(
                     base.Session, new TypeReference[] { reconcileDataPd.ParameterType, replicateDataTr });
+
                 //<T>(ReplicateULDelegate<T> replicateDel, ReconcileULDelegate<T> reconcileDel, List<T> collection, 
                 //T data, Channel channel) where T : IReconcileData
                 processor.Emit(OpCodes.Ldarg_0);
@@ -736,7 +738,10 @@ namespace FishNet.CodeGenerating.Processing
             //Already exist when it shouldn't.
             if (md != null)
             {
-                base.LogWarning($"{typeDef.Name} overrides method {md.Name} when it should not. Logic within {md.Name} will be replaced by code generation.");
+                base.LogWarning(
+                    $"{typeDef.Name} overrides method {md.Name} when it should not. Logic within {md.Name} will be replaced by code generation.",
+                    md.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 md.Body.Instructions.Clear();
             }
             else

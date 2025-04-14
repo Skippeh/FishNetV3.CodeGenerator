@@ -2,6 +2,7 @@
 using Mono.Cecil;
 using Mono.Cecil.Rocks;
 using System;
+using System.Linq;
 
 namespace FishNet.CodeGenerating.Helping.Extension
 {
@@ -63,7 +64,10 @@ namespace FishNet.CodeGenerating.Helping.Extension
             {
                 if (typeReferences == null || typeReferences.Length == 0)
                 {
-                    session.LogError($"Method {mr.Name} has generic parameters but TypeReferences are null or 0 length.");
+                    session.LogError(
+                        $"Method {mr.Name} has generic parameters but TypeReferences are null or 0 length.",
+                        mr.CachedResolve(session).DebugInformation.SequencePoints.FirstOrDefault()
+                    );
                     return null;
                 }
                 else

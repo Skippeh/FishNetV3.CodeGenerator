@@ -6,6 +6,7 @@ using FishNet.CodeGenerating.Processing.Rpc;
 using Mono.Cecil;
 using System.Collections.Generic;
 using System.Linq;
+using Mono.Cecil.Cil;
 using Unity.CompilationPipeline.Common.Diagnostics;
 #if !UNITY_2020_1_OR_NEWER
 using UnityEngine;
@@ -99,28 +100,38 @@ namespace FishNet.CodeGenerating
 
 
         #region Logging.
+
         /// <summary>
         /// Logs a warning.
         /// </summary>
         /// <param name="msg"></param>
-        internal void LogWarning(string msg)
+        /// <param name="sequencePoint"></param>
+        internal void LogWarning(string msg, SequencePoint sequencePoint)
         {
             Diagnostics.Add(new DiagnosticMessage
             {
                 DiagnosticType = DiagnosticType.Warning,
-                MessageData = msg
+                MessageData = msg,
+                File = sequencePoint?.Document.Url,
+                Line = sequencePoint?.StartLine ?? 0,
+                Column = sequencePoint?.StartColumn ?? 0
             });
         }
+
         /// <summary>
         /// Logs an error.
         /// </summary>
         /// <param name="msg"></param>
-        internal void LogError(string msg)
+        /// <param name="sequencePoint"></param>
+        internal void LogError(string msg, SequencePoint sequencePoint)
         {
             Diagnostics.Add(new DiagnosticMessage
             {
                 DiagnosticType = DiagnosticType.Error,
-                MessageData = msg
+                MessageData = msg,
+                File = sequencePoint?.Document.Url,
+                Line = sequencePoint?.StartLine ?? 0,
+                Column = sequencePoint?.StartColumn ?? 0
             });
         }
         #endregion

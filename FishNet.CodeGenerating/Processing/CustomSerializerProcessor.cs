@@ -1,4 +1,3 @@
-﻿
 using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
@@ -7,6 +6,7 @@ using FishNet.Serializing.Helping;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace FishNet.CodeGenerating.Processing
@@ -123,14 +123,14 @@ namespace FishNet.CodeGenerating.Processing
                 //Validate return type.
                 if (methodDef.ReturnType.FullName != gh.GetTypeReference(typeof(bool)).FullName)
                 {
-                    base.LogError($"Comparer method {methodDef.Name} in type {typeDef.FullName} must return bool.");
+                    base.LogError($"Comparer method {methodDef.Name} in type {typeDef.FullName} must return bool.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                     continue;
                 }
                 /* Make sure parameters are correct. */
                 //Invalid count.
                 if (methodDef.Parameters.Count != 2)
                 {
-                    base.LogError($"Comparer method {methodDef.Name} in type {typeDef.FullName} must have exactly two parameters, each of the same type which is being compared.");
+                    base.LogError($"Comparer method {methodDef.Name} in type {typeDef.FullName} must have exactly two parameters, each of the same type which is being compared.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                     continue;
                 }
                 TypeReference p0Tr = methodDef.Parameters[0].ParameterType;
@@ -138,7 +138,7 @@ namespace FishNet.CodeGenerating.Processing
                 //Not the same types.
                 if (p0Tr != p1Tr)
                 {
-                    base.LogError($"Both parameters must be the same type in comparer method {methodDef.Name} in type {typeDef.FullName}.");
+                    base.LogError($"Both parameters must be the same type in comparer method {methodDef.Name} in type {typeDef.FullName}.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                     continue;
                 }
 
@@ -235,7 +235,7 @@ namespace FishNet.CodeGenerating.Processing
                     //Constructor is inaccessible, cannot create serializer for type.
                     if (constructor != null && !constructor.IsPublic)
                     {
-                        base.LogError($"Unable to generator serializers for {typeDefinition.FullName} because it's constructor is not public.");
+                        base.LogError($"Unable to generator serializers for {typeDefinition.FullName} because it's constructor is not public.", null);
                         return;
                     }
                 }
@@ -344,12 +344,12 @@ namespace FishNet.CodeGenerating.Processing
 
             if (write && methodDef.Parameters.Count < 2)
             {
-                base.LogError($"{methodDef.FullName} must have at least two parameters, the first being PooledWriter, and second value to write.");
+                base.LogError($"{methodDef.FullName} must have at least two parameters, the first being PooledWriter, and second value to write.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                 return ExtensionType.None;
             }
             else if (!write && methodDef.Parameters.Count < 1)
             {
-                base.LogError($"{methodDef.FullName} must have at least one parameters, the first being PooledReader.");
+                base.LogError($"{methodDef.FullName} must have at least one parameters, the first being PooledReader.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                 return ExtensionType.None;
             }
 

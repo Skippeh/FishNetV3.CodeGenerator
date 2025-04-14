@@ -76,7 +76,10 @@ namespace FishNet.CodeGenerating.Helping
                 bool canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(genericDataTr, true);
                 if (!canSerialize)
                 {
-                    base.LogError($"SyncVar {originalFd.Name} data type {genericDataTr.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                    base.LogError(
+                        $"SyncVar {originalFd.Name} data type {genericDataTr.FullName} does not support serialization. Use a supported type or create a custom serializer.",
+                        null
+                    );
                     return null;
                 }
 

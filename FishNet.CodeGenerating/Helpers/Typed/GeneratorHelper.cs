@@ -1,4 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
+using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.Object;
 using FishNet.Serializing.Helping;
@@ -25,7 +25,7 @@ namespace FishNet.CodeGenerating.Helping
             {
                 if (base.GetClass<WriterProcessor>().GetWriteMethodReference(objectTr) != null)
                 {
-                    base.LogError($"Writer already exist for {objectTr.FullName}.");
+                    base.LogError($"Writer already exist for {objectTr.FullName}.", null);
                     return SerializerType.Invalid;
                 }
             }
@@ -33,7 +33,7 @@ namespace FishNet.CodeGenerating.Helping
             {
                 if (base.GetClass<ReaderProcessor>().GetReadMethodReference(objectTr) != null)
                 {
-                    base.LogError($"Reader already exist for {objectTr.FullName}.");
+                    base.LogError($"Reader already exist for {objectTr.FullName}.", null);
                     return SerializerType.Invalid;
                 }
             }
@@ -42,7 +42,7 @@ namespace FishNet.CodeGenerating.Helping
             //Invalid typeDef.
             if (objectTd == null)
             {
-                base.LogError($"{errorPrefix}{objectTd.FullName} could not be resolved.");
+                base.LogError($"{errorPrefix}{objectTd.FullName} could not be resolved.", null);
                 return SerializerType.Invalid;
             }
             //Intentionally excluded.
@@ -58,7 +58,7 @@ namespace FishNet.CodeGenerating.Helping
             //By reference.            
             if (objectTr.IsByReference)
             {
-                base.LogError($"{errorPrefix}Cannot pass {objectTr.Name} by reference");
+                base.LogError($"{errorPrefix}Cannot pass {objectTr.Name} by reference", null);
                 return SerializerType.Invalid;
             }
             /* Arrays have to be processed first because it's possible for them to meet other conditions
@@ -67,7 +67,7 @@ namespace FishNet.CodeGenerating.Helping
             {
                 if (objectTr.IsMultidimensionalArray())
                 {
-                    base.LogError($"{errorPrefix}{objectTr.Name} is an unsupported type. Multidimensional arrays are not supported");
+                    base.LogError($"{errorPrefix}{objectTr.Name} is an unsupported type. Multidimensional arrays are not supported", null);
                     return SerializerType.Invalid;
                 }
                 else
@@ -119,7 +119,7 @@ namespace FishNet.CodeGenerating.Helping
             //Unknown type.
             else
             {
-                base.LogError($"{errorPrefix}{objectTr.Name} is an unsupported type. Mostly because we don't know what the heck it is. Please let us know so we can fix this.");
+                base.LogError($"{errorPrefix}{objectTr.Name} is an unsupported type. Mostly because we don't know what the heck it is. Please let us know so we can fix this.", null);
                 return SerializerType.Invalid;
             }
         }
@@ -130,54 +130,54 @@ namespace FishNet.CodeGenerating.Helping
         /// </summary>
         private bool CanGenerateSerializer(TypeDefinition objectTd)
         {
-            string errorText = $"{objectTd.Name} is not a supported type. Use a supported type or provide a custom serializer";
+            string errorText = $"{objectTd?.Name} is not a supported type. Use a supported type or provide a custom serializer";
 
             System.Type unityObjectType = typeof(UnityEngine.Object);
             //Unable to determine type, cannot generate for.
             if (objectTd == null)
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             //Component.
             if (objectTd.InheritsFrom<UnityEngine.Component>(base.Session))
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             //Unity Object.
             if (objectTd.Is(unityObjectType))
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             //ScriptableObject.
             if (objectTd.Is(typeof(UnityEngine.ScriptableObject)))
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             //Has generic parameters.
             if (objectTd.HasGenericParameters)
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             //Is an interface.
             if (objectTd.IsInterface)
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             //Is abstract.
             if (objectTd.IsAbstract)
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
             if (objectTd.InheritsFrom(base.Session, unityObjectType) && objectTd.IsExcluded(GeneralHelper.UNITYENGINE_ASSEMBLY_PREFIX))
             {
-                base.LogError(errorText);
+                base.LogError(errorText, null);
                 return false;
             }
 

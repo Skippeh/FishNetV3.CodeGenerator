@@ -1,6 +1,7 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FishNet.CodeGenerating.Helping.Extension
 {
@@ -139,7 +140,12 @@ namespace FishNet.CodeGenerating.Helping.Extension
         {
             if (processor.Body.Method.ReturnType.FullName != session.Module.TypeSystem.Void.FullName)
             {
-                session.LogError($"Cannot insert instructions before returns on {processor.Body.Method.FullName} because it does not return void.");
+                session.LogError(
+                    $"Cannot insert instructions before returns on {processor.Body.Method.FullName} because it does not return void.",
+                    processor.Body.Method.DebugInformation.GetSequencePoint(
+                        processor.Body.Instructions.FirstOrDefault(instr => instr.OpCode == OpCodes.Ret)
+                    )
+                );
                 return;
             }
 

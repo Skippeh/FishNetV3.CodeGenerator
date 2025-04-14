@@ -1,4 +1,5 @@
 ﻿using Mono.Cecil;
+using Mono.Cecil.Cil;
 using SR = System.Reflection;
 
 
@@ -29,16 +30,20 @@ namespace FishNet.CodeGenerating
         internal T GetClass<T>() where T : CodegenBase => Session.GetClass<T>();
 
         #region Logging.
+
         /// <summary>
         /// Logs a warning.
         /// </summary>
         /// <param name="msg"></param>
-        internal void LogWarning(string msg) => Session.LogWarning(msg);
+        /// <param name="sequencePoint"></param>
+        internal void LogWarning(string msg, SequencePoint sequencePoint) => Session.LogWarning(msg, sequencePoint);
+
         /// <summary>
         /// Logs an error.
         /// </summary>
         /// <param name="msg"></param>
-        internal void LogError(string msg) => Session.LogError(msg);
+        /// <param name="sequencePoint"></param>
+        internal void LogError(string msg, SequencePoint sequencePoint) => Session.LogError(msg, sequencePoint);
         #endregion
 
         #region ImportReference.

@@ -37,7 +37,7 @@ namespace FishNet.CodeGenerating.Processing
                  * single check is performed here. */
                 if (qolType != QolAttributeType.Server && qolType != QolAttributeType.Client)
                 {
-                    base.LogError($"QolAttributeType of {qolType.ToString()} is unhandled.");
+                    base.LogError($"QolAttributeType of {qolType.ToString()} is unhandled.", md.DebugInformation.SequencePoints.FirstOrDefault());
                     continue;
                 }
 
@@ -72,7 +72,10 @@ namespace FishNet.CodeGenerating.Processing
                     //A qol attribute already exist.
                     if (foundAttribute != null)
                     {
-                        base.LogError($"{methodDef.Name} {thisQolType.ToString()} method cannot have multiple quality of life attributes.");
+                        base.LogError(
+                            $"{methodDef.Name} {thisQolType.ToString()} method cannot have multiple quality of life attributes.",
+                            methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                        );
                         error = true;
                     }
                     ////Static method.
@@ -84,7 +87,10 @@ namespace FishNet.CodeGenerating.Processing
                     //Abstract method.
                     if (methodDef.IsAbstract)
                     {
-                        base.LogError($"{methodDef.Name} {thisQolType.ToString()} method cannot be abstract.");
+                        base.LogError(
+                            $"{methodDef.Name} {thisQolType.ToString()} method cannot be abstract.",
+                            methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                        );
                         error = true;
                     }
 
@@ -129,7 +135,10 @@ namespace FishNet.CodeGenerating.Processing
                     bool requireOwnership = qolAttribute.GetField("RequireOwnership", false);
                     if (requireOwnership && useStatic)
                     {
-                        base.LogError($"Method {methodDef.Name} has a [Client] attribute which requires ownership but the method may not use this attribute. Either the method is static, or the script does not inherit from NetworkBehaviour.");
+                        base.LogError(
+                            $"Method {methodDef.Name} has a [Client] attribute which requires ownership but the method may not use this attribute. Either the method is static, or the script does not inherit from NetworkBehaviour.",
+                            methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                        );
                         return;
                     }
                     //If (!base.IsOwner);

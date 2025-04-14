@@ -72,7 +72,7 @@ namespace FishNet.CodeGenerating.Extension
         {
             if (td.BaseType == null)
             {
-                session.LogError($"BaseType for {td.FullName} is null.");
+                session.LogError($"BaseType for {td.FullName} is null.", null);
                 return null;
             }
 

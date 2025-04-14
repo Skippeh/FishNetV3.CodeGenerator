@@ -4,6 +4,7 @@ using FishNet.Connection;
 using FishNet.Object.Helping;
 using Mono.Cecil;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace FishNet.CodeGenerating.Processing.Rpc
@@ -60,7 +61,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
             //If has at least one RPC attrivbute and is an async method.
             else if (isAsync)
             {
-                base.Session.LogError($"{methodDef.Name} is an async RPC. This feature is not currently supported. You may instead run an async method from this RPC.");
+                base.Session.LogError(
+                    $"{methodDef.Name} is an async RPC. This feature is not currently supported. You may instead run an async method from this RPC.",
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return new List<AttributeData>();
             }
             //If more than one attribute make sure the combination is allowed.
@@ -69,7 +73,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                 RpcType allRpcTypes = results.GetCombinedRpcType();
                 if (allRpcTypes != (RpcType.Observers | RpcType.Target))
                 {
-                    base.Session.LogError($"{methodDef.Name} contains multiple RPC attributes. Only ObserversRpc and TargetRpc attributes may be combined.");
+                    base.Session.LogError(
+                        $"{methodDef.Name} contains multiple RPC attributes. Only ObserversRpc and TargetRpc attributes may be combined.",
+                        methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                    );
                     return new List<AttributeData>();
                 }
             }
@@ -93,25 +100,35 @@ namespace FishNet.CodeGenerating.Processing.Rpc
             //Static method.
             if (methodDef.IsStatic)
             {
-                base.Session.LogError($"{methodDef.Name} RPC method cannot be static.");
+                base.Session.LogError(
+                    $"{methodDef.Name} RPC method cannot be static.", methodDef.DebugInformation.SequencePoints.FirstOrDefault());
                 return false;
             }
             //Is generic type.
             else if (methodDef.HasGenericParameters)
             {
-                base.Session.LogError($"{methodDef.Name} RPC method cannot contain generic parameters.");
+                base.Session.LogError(
+                    $"{methodDef.Name} RPC method cannot contain generic parameters.",
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return false;
             }
             //Abstract method.
             else if (methodDef.IsAbstract)
             {
-                base.Session.LogError($"{methodDef.Name} RPC method cannot be abstract.");
+                base.Session.LogError(
+                    $"{methodDef.Name} RPC method cannot be abstract.",
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return false;
             }
             //Non void return.
             else if (methodDef.ReturnType != methodDef.Module.TypeSystem.Void)
             {
-                base.Session.LogError($"{methodDef.Name} RPC method must return void.");
+                base.Session.LogError(
+                    $"{methodDef.Name} RPC method must return void.",
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return false;
             }
             //Misc failing conditions.
@@ -128,7 +145,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
             {
                 if (methodDef.Parameters.Count == 0 || !methodDef.Parameters[0].Is(typeof(NetworkConnection)))
                 {
-                    base.Session.LogError($"Target RPC {methodDef.Name} must have a NetworkConnection as the first parameter.");
+                    base.Session.LogError(
+                        $"Target RPC {methodDef.Name} must have a NetworkConnection as the first parameter.",
+                        methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                    );
                     return false;
                 }
             }
@@ -144,7 +164,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
 
                 if (parameterDef.ParameterType.IsGenericParameter)
                 {
-                    base.Session.LogError($"RPC method{methodDef.Name} contains a generic parameter. This is currently not supported.");
+                    base.Session.LogError(
+                        $"RPC method{methodDef.Name} contains a generic parameter. This is currently not supported.",
+                        methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                    );
                     return false;
                 }
 
@@ -152,7 +175,10 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                 bool canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(parameterDef.ParameterType, true);
                 if (!canSerialize)
                 {
-                    base.Session.LogError($"RPC method {methodDef.Name} parameter type {parameterDef.ParameterType.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                    base.Session.LogError(
+                        $"RPC method {methodDef.Name} parameter type {parameterDef.ParameterType.FullName} does not support serialization. Use a supported type or create a custom serializer.",
+                        methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                    );
                     return false;
                 }
 

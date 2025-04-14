@@ -1,4 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
+using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.Object;
@@ -217,7 +217,7 @@ namespace FishNet.CodeGenerating.Processing
                 {
                     TypeDefinition foundSyncBaseTd = fieldDef.FieldType.CachedResolve(base.Session).GetClassInInheritance(base.Session, SyncBase_TypeDef);
                     if (foundSyncBaseTd != null && foundSyncBaseTd.ImplementsInterface<ISyncType>())
-                        base.LogError($"{fieldDef.Name} within {fieldDef.DeclaringType.Name} is a SyncType but is missing the [SyncVar] or [SyncObject] attribute.");
+                        base.LogError($"{fieldDef.Name} within {fieldDef.DeclaringType.Name} is a SyncType but is missing the [SyncVar] or [SyncObject] attribute.", null);
 
                     return SyncType.Unset;
                 }
@@ -230,7 +230,7 @@ namespace FishNet.CodeGenerating.Processing
                     //Make sure syncvar attribute isnt on a sync object.
                     if (GetSyncObjectSyncType(syncAttribute) != SyncType.Unset)
                     {
-                        base.LogError($"{fieldDef.Name} within {fieldDef.DeclaringType.Name} uses a [SyncVar] attribute but should be using [SyncObject].");
+                        base.LogError($"{fieldDef.Name} within {fieldDef.DeclaringType.Name} uses a [SyncVar] attribute but should be using [SyncObject].", null);
                         return SyncType.Unset;
                     }
                     else
@@ -247,7 +247,7 @@ namespace FishNet.CodeGenerating.Processing
                     //If attribute is null then throw error.
                     if (sa == null)
                     {
-                        base.LogError($"{fieldDef.Name} within {fieldDef.DeclaringType.Name} is a SyncType but [SyncObject] attribute was not found.");
+                        base.LogError($"{fieldDef.Name} within {fieldDef.DeclaringType.Name} is a SyncType but [SyncObject] attribute was not found.", null);
                         return SyncType.Unset;
                     }
 
@@ -276,7 +276,7 @@ namespace FishNet.CodeGenerating.Processing
 
                 //Fall through.
                 if (syncAttribute != null)
-                    base.LogError($"SyncObject attribute found on {fieldDef.Name} within {fieldDef.DeclaringType.Name} but type {fieldDef.FieldType.Name} does not inherit from SyncBase, or if a custom type does not implement ICustomSync.");
+                    base.LogError($"SyncObject attribute found on {fieldDef.Name} within {fieldDef.DeclaringType.Name} but type {fieldDef.FieldType.Name} does not inherit from SyncBase, or if a custom type does not implement ICustomSync.", null);
 
                 return SyncType.Unset;
             }
@@ -333,13 +333,13 @@ namespace FishNet.CodeGenerating.Processing
                     //Not SyncVar<T>.
                     if (fieldDef.FieldType != syncVarTr)
                     {
-                        base.LogError($" SyncVar fields must be declared as SyncVar<T>.");
+                        base.LogError($" SyncVar fields must be declared as SyncVar<T>.", null);
                         return SyncType.Unset;
                     }
 
                 }
 
-                base.LogError($"SyncVar and SyncObject attribute are no longer used. Initialize your SyncTypes in Awake using syncType.Initialize.");
+                base.LogError($"SyncVar and SyncObject attribute are no longer used. Initialize your SyncTypes in Awake using syncType.Initialize.", null);
                 return SyncType.Unset;
             }
 
@@ -412,7 +412,7 @@ namespace FishNet.CodeGenerating.Processing
             //Wasn't able to determine serialized type, or create it.
             if (!canSerialize)
             {
-                base.LogError($"Custom SyncObject {originalFieldDef.Name} data type {serializedDataTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"Custom SyncObject {originalFieldDef.Name} data type {serializedDataTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
 
@@ -438,7 +438,7 @@ namespace FishNet.CodeGenerating.Processing
             bool canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(dataTypeRef, true);
             if (!canSerialize)
             {
-                base.LogError($"SyncObject {originalFieldDef.Name} data type {dataTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"SyncObject {originalFieldDef.Name} data type {dataTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
 
@@ -464,14 +464,14 @@ namespace FishNet.CodeGenerating.Processing
             canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(keyTypeRef, true);
             if (!canSerialize)
             {
-                base.LogError($"SyncObject {originalFieldDef.Name} key type {keyTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"SyncObject {originalFieldDef.Name} key type {keyTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
             //Check value serializer.
             canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(valueTypeRef, true);
             if (!canSerialize)
             {
-                base.LogError($"SyncObject {originalFieldDef.Name} value type {valueTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"SyncObject {originalFieldDef.Name} value type {valueTypeRef.FullName} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
 
@@ -490,7 +490,7 @@ namespace FishNet.CodeGenerating.Processing
             bool canSerialize = base.GetClass<GeneralHelper>().HasSerializerAndDeserializer(fieldDef.FieldType, true);
             if (!canSerialize)
             {
-                base.LogError($"SyncVar {fieldDef.FullName} field type {fieldDef.FieldType.FullName} does not support serialization. Use a supported type or create a custom serializer.");
+                base.LogError($"SyncVar {fieldDef.FullName} field type {fieldDef.FieldType.FullName} does not support serialization. Use a supported type or create a custom serializer.", null);
                 return false;
             }
 
@@ -561,19 +561,19 @@ namespace FishNet.CodeGenerating.Processing
                 //A syncvar attribute already exist.
                 if (foundAttribute != null)
                 {
-                    base.LogError($"{fieldDef.Name} cannot have multiple SyncType attributes.");
+                    base.LogError($"{fieldDef.Name} cannot have multiple SyncType attributes.", null);
                     error = true;
                 }
                 //Static.
                 if (fieldDef.IsStatic)
                 {
-                    base.LogError($"{fieldDef.Name} SyncType cannot be static.");
+                    base.LogError($"{fieldDef.Name} SyncType cannot be static.", null);
                     error = true;
                 }
                 //Generic.
                 if (fieldDef.FieldType.IsGenericParameter)
                 {
-                    base.LogError($"{fieldDef.Name} SyncType cannot be be generic.");
+                    base.LogError($"{fieldDef.Name} SyncType cannot be be generic.", null);
                     error = true;
                 }
                 //SyncObject readonly check.
@@ -584,7 +584,7 @@ namespace FishNet.CodeGenerating.Processing
                     bool requireReadOnly = customAttribute.GetField(nameof(SyncObjectAttribute.RequireReadOnly), true);
                     if (requireReadOnly)
                     {
-                        base.LogError($"{fieldDef.Name} SyncObject must be readonly.");
+                        base.LogError($"{fieldDef.Name} SyncObject must be readonly.", null);
                         error = true;
                     }
                 }
@@ -660,7 +660,7 @@ namespace FishNet.CodeGenerating.Processing
             FieldDefinition createdFieldDef = new FieldDefinition($"{SYNCVAR_PREFIX}{originalFieldDef.Name}", originalFieldDef.Attributes, createdSyncVar.SyncVarGit);
             if (createdFieldDef == null)
             {
-                base.LogError($"Could not create field for Sync type {originalFieldDef.FieldType.FullName}, name of {originalFieldDef.Name}.");
+                base.LogError($"Could not create field for Sync type {originalFieldDef.FieldType.FullName}, name of {originalFieldDef.Name}.", null);
                 return null;
             }
             //Add to CreatedSyncVar.
@@ -692,7 +692,7 @@ namespace FishNet.CodeGenerating.Processing
                 //Not correct number of parameters.
                 if (md.Parameters.Count != 3)
                 {
-                    base.LogError(incorrectParametersMsg);
+                    base.LogError(incorrectParametersMsg, md.DebugInformation.SequencePoints.FirstOrDefault());
                     return null;
                 }
                 /* Check if any parameters are not
@@ -701,7 +701,7 @@ namespace FishNet.CodeGenerating.Processing
                     md.Parameters[1].ParameterType.CachedResolve(base.Session) != originalFieldDef.FieldType.CachedResolve(base.Session) ||
                     md.Parameters[2].ParameterType.CachedResolve(base.Session) != base.Module.TypeSystem.Boolean.CachedResolve(base.Session))
                 {
-                    base.LogError(incorrectParametersMsg);
+                    base.LogError(incorrectParametersMsg, md.DebugInformation.SequencePoints.FirstOrDefault());
                     return null;
                 }
 
@@ -711,7 +711,7 @@ namespace FishNet.CodeGenerating.Processing
             //Hook specified but no method found.
             else
             {
-                base.LogError($"Could not find method name {hook} for SyncType {originalFieldDef.FullName}.");
+                base.LogError($"Could not find method name {hook} for SyncType {originalFieldDef.FullName}.", null);
                 return null;
             }
         }
@@ -815,7 +815,7 @@ namespace FishNet.CodeGenerating.Processing
             //If SyncBase isn't found.
             if (syncBaseTd == null)
             {
-                base.LogError($"Could not find SyncBase within type {typeDef.FullName}.");
+                base.LogError($"Could not find SyncBase within type {typeDef.FullName}.", null);
                 return false;
             }
             else
@@ -862,8 +862,8 @@ namespace FishNet.CodeGenerating.Processing
             /* Initialize with attribute settings. */
             injectionMethodDef = typeDef.GetMethod(NetworkBehaviourProcessor.NETWORKINITIALIZE_EARLY_INTERNAL_NAME);
             processor = injectionMethodDef.Body.GetILProcessor();
-            //
 
+            //
             insts.Add(processor.Create(OpCodes.Ldarg_0)); //this.
             insts.Add(processor.Create(OpCodes.Ldfld, originalFieldDef));
             insts.Add(processor.Create(OpCodes.Ldarg_0)); //this again for NetworkBehaviour.
@@ -1141,7 +1141,7 @@ namespace FishNet.CodeGenerating.Processing
         {
             if (methodDef == null)
             {
-                base.LogError($"An object expecting value was null. Please try saving your script again.");
+                base.LogError($"An object expecting value was null. Please try saving your script again.", null);
                 return false;
             }
             if (methodDef.IsAbstract)
@@ -1377,7 +1377,7 @@ namespace FishNet.CodeGenerating.Processing
         /// <param name="typeDef"></param>
         /// <param name="syncIndex"></param>
         /// <param name="originalFieldDef"></param>
-        private MethodDefinition CreateSyncVarRead(TypeDefinition typeDef, uint syncIndex, CreatedSyncVar createdSyncVar, FieldDefinition originalFieldDef, MethodReference accessorSetMethodRef, ref MethodDefinition readSyncVarMd)
+        private MethodDefinition CreateSyncVarRead(TypeDefinition typeDef, uint syncIndex, CreatedSyncVar createdSyncVar, FieldDefinition originalFieldDef, MethodReference accessorSetValueMr, ref MethodDefinition readSyncVarMd)
         {
             Instruction jmpGoalInst;
             ILProcessor processor;
@@ -1453,7 +1453,7 @@ namespace FishNet.CodeGenerating.Processing
             processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Ldc_I4_1)); //True for calledByUser.
             processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Call, createdSyncVar.GetValueMr));
             processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Ldc_I4_1)); //True for calledByUser.
-            processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Call, accessorSetMethodRef));
+            processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Call, accessorSetValueMr));
 
             InsertReturnTrue();
 
@@ -1474,7 +1474,7 @@ namespace FishNet.CodeGenerating.Processing
             processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Ldloc, nextValueVariableDef));
             //processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Ldc_I4_0));
             processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Ldarg, asServerPd));
-            processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Call, accessorSetMethodRef));
+            processor.InsertBefore(jmpGoalInst, processor.Create(OpCodes.Call, accessorSetValueMr));
             InsertReturnTrue();
 
             void InsertReturnTrue()
@@ -1545,7 +1545,7 @@ namespace FishNet.CodeGenerating.Processing
             }
 
             /* Fall through, not found. */
-            base.LogError($"Unable to find user referenced field for {resolvedOpField.Name}.");
+            base.LogError($"Unable to find user referenced field for {resolvedOpField.Name}.", null);
             return null;
         }
     }

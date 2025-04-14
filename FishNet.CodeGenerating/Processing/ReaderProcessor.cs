@@ -6,6 +6,7 @@ using Mono.Cecil.Rocks;
 using SR = System.Reflection;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 using FishNet.CodeGenerating.ILCore;
 using FishNet.CodeGenerating.Extension;
 using FishNet.Utility.Performance;
@@ -227,7 +228,10 @@ namespace FishNet.CodeGenerating.Helping
             TypeReference dataTypeRef = readMr.ReturnType;
             if (_delegatedTypes.Contains(dataTypeRef))
             {
-                base.LogError($"Generic read already created for {dataTypeRef.FullName}.");
+                base.LogError(
+                    $"Generic read already created for {dataTypeRef.FullName}.",
+                    readMr.CachedResolve(Session).DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return;
             }
             else
@@ -364,7 +368,10 @@ namespace FishNet.CodeGenerating.Helping
             }
             else
             {
-                base.LogError("Reader not found for " + readTypeRef.ToString());
+                base.LogError(
+                    "Reader not found for " + readTypeRef.ToString(),
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 createdVariableDef = null;
                 return null;
             }
@@ -413,7 +420,10 @@ namespace FishNet.CodeGenerating.Helping
             }
             else
             {
-                base.LogError($"Reader not found for {valueFr.FullName}.");
+                base.LogError(
+                    $"Reader not found for {valueFr.FullName}.",
+                    readerMd.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return false;
             }
         }
@@ -461,7 +471,10 @@ namespace FishNet.CodeGenerating.Helping
             }
             else
             {
-                base.LogError($"Reader not found for {readTr.FullName}.");
+                base.LogError(
+                    $"Reader not found for {readTr.FullName}.",
+                    methodDef.DebugInformation.SequencePoints.FirstOrDefault()
+                );
                 return false;
             }
         }
@@ -642,7 +655,7 @@ namespace FishNet.CodeGenerating.Helping
             //If still null then return could not be generated.
             if (readMethodRef == null)
             {
-                base.LogError($"Could not create deserializer for {typeRef.FullName}.");
+                base.LogError($"Could not create deserializer for {typeRef.FullName}.", null);
             }
             //Otherwise, check if generic and create writes for generic parameters.
             else if (typeRef.IsGenericInstance)
@@ -653,7 +666,7 @@ namespace FishNet.CodeGenerating.Helping
                     MethodReference result = GetOrCreateReadMethodReference(item);
                     if (result == null)
                     {
-                        base.LogError($"Could not create deserializer for {item.FullName}.");
+                        base.LogError($"Could not create deserializer for {item.FullName}.", null);
                         return null;
                     }
                 }
@@ -845,7 +858,7 @@ namespace FishNet.CodeGenerating.Helping
                 //Writer not found.
                 if (GetOrCreateReadMethodReference(gaTr) == null)
                 {
-                    base.LogError($"Reader could not be found or created for type {gaTr.FullName}.");
+                    base.LogError($"Reader could not be found or created for type {gaTr.FullName}.", null);
                     return null;
                 }
                 genericArguments.Add(gaTr);
@@ -871,7 +884,7 @@ namespace FishNet.CodeGenerating.Helping
             //Not found.
             if (instancedReadMr == null)
             {
-                base.LogError($"Instanced reader not found for SerializerType {st} on object {objectTr.Name}.");
+                base.LogError($"Instanced reader not found for SerializerType {st} on object {objectTr.Name}.", null);
                 return null;
             }
 
@@ -957,7 +970,10 @@ namespace FishNet.CodeGenerating.Helping
             MethodDefinition objectCtorMd = objectTr.GetConstructor(base.Session, 1);
             if (objectCtorMd == null)
             {
-                base.LogError($"{objectTr.Name} can't be deserialized because the nullable type does not have a constructor.");
+                base.LogError(
+                    $"{objectTr.Name} can't be deserialized because the nullable type does not have a constructor.",
+                    null
+                );
                 return null;
             }
 

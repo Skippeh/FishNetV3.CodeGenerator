@@ -1,4 +1,4 @@
-﻿using FishNet.CodeGenerating.Extension;
+using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.CodeGenerating.Processing.Rpc;
@@ -54,7 +54,7 @@ namespace FishNet.CodeGenerating.Processing
                     {
                         if (item.InheritsNetworkBehaviour(base.Session))
                         {
-                            base.LogError($"{copyTypeDef.FullName} contains nested NetworkBehaviours. These are not supported.");
+                            base.LogError($"{copyTypeDef.FullName} contains nested NetworkBehaviours. These are not supported.", null);
                             return modified;
                         }
                     }
@@ -121,7 +121,10 @@ namespace FishNet.CodeGenerating.Processing
                 if (!ModifyAwakeMethod(td, out bool awakeCreated))
                 {
                     //This is a hard fail and will break the solution so throw here.
-                    base.LogError($"{td.FullName} has an Awake method which could not be modified, or could not be found. This often occurs when a child class is in an assembly different from the parent, and the parent does not implement Awake. To resolve this make an Awake in {td.Name} public virtual.");
+                    base.LogError(
+                        $"{td.FullName} has an Awake method which could not be modified, or could not be found. This often occurs when a child class is in an assembly different from the parent, and the parent does not implement Awake. To resolve this make an Awake in {td.Name} public virtual.",
+                        null
+                    );
                     return modified;
                 }
 
@@ -143,7 +146,10 @@ namespace FishNet.CodeGenerating.Processing
 
             if (processedSyncs.Count > NetworkBehaviourHelper.MAX_SYNCTYPE_ALLOWANCE)
             {
-                base.LogError($"Found {processedSyncs.Count} SyncTypes within {typeDef.FullName} and inherited classes. The maximum number of allowed SyncTypes within type and inherited types is {NetworkBehaviourHelper.MAX_SYNCTYPE_ALLOWANCE}. Remove SyncTypes or condense them using data containers, or a custom SyncObject.");
+                base.LogError(
+                    $"Found {processedSyncs.Count} SyncTypes within {typeDef.FullName} and inherited classes. The maximum number of allowed SyncTypes within type and inherited types is {NetworkBehaviourHelper.MAX_SYNCTYPE_ALLOWANCE}. Remove SyncTypes or condense them using data containers, or a custom SyncObject.",
+                    null
+                );
                 return false;
             }
 
@@ -190,7 +196,7 @@ namespace FishNet.CodeGenerating.Processing
                     //Has RPC attribute but doesn't inherit from NB.
                     if (rpcProcessor.Attributes.HasRpcAttributes(md))
                     {
-                        base.LogError($"{typeDef.FullName} has one or more RPC attributes but does not inherit from NetworkBehaviour.");
+                        base.LogError($"{typeDef.FullName} has one or more RPC attributes but does not inherit from NetworkBehaviour.", md.DebugInformation.SequencePoints.FirstOrDefault());
                         return true;
                     }
                 }
@@ -199,7 +205,7 @@ namespace FishNet.CodeGenerating.Processing
                 {
                     if (nbSyncProcessor.IsSyncType(fd))
                     {
-                        base.LogError($"{typeDef.FullName} implements one or more SyncTypes but does not inherit from NetworkBehaviour.");
+                        base.LogError($"{typeDef.FullName} implements one or more SyncTypes but does not inherit from NetworkBehaviour.", null);
                         return true;
                     }
                 }
@@ -448,7 +454,12 @@ namespace FishNet.CodeGenerating.Processing
             {
                 if (awakeMd.ReturnType != typeDef.Module.TypeSystem.Void)
                 {
-                    base.LogError($"IEnumerator Awake methods are not supported within NetworkBehaviours.");
+                    base.LogError(
+                        $"IEnumerator Awake methods are not supported within NetworkBehaviours.",
+                        awakeMd.DebugInformation.GetSequencePoint(
+                            awakeMd.Body.Instructions.FirstOrDefault(instr => instr.OpCode == OpCodes.Ret)
+                        )
+                    );
                     return false;
                 }
                 //Make public if good.
