@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using Unity.CompilationPipeline.Common.ILPostProcessing;
 
@@ -68,6 +69,21 @@ namespace FishNet.CodeGenerating
                 }
 
                 parameters.AssemblyResolver = this;
+
+                if (!File.Exists(fileName))
+                {
+                    var builder = new StringBuilder();
+                    builder.AppendLine($"Could not find assembly: {fileName}");
+                    builder.AppendLine($"Searched in the following directories:");
+                    
+                    foreach (var searchPath in AssemblySearchPaths)
+                    {
+                        builder.AppendLine($"- {searchPath}");
+                    }
+
+                    Console.WriteLine(builder);
+                    throw new FileNotFoundException(builder.ToString());
+                }
 
                 var ms = MemoryStreamFor(fileName);
                 var pdb = $"{fileName}.pdb";
