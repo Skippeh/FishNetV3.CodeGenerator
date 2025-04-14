@@ -29,4 +29,14 @@
       <ProjectReference Include="..\FishNet.CodeGenerating\FishNet.CodeGenerating.csproj" />
       <ProjectReference Include="..\FishNet.CodeGenerator\FishNet.CodeGenerator.csproj" />
     </ItemGroup>
+
+    <Target Name="PackTaskDependencies" BeforeTargets="GenerateNuspec">
+        <ItemGroup>
+            <_PackageFiles Include="bin\$(Configuration)\*\FishNet*.dll;bin\$(Configuration)\*\Mono*.dll;bin\$(Configuration)\*\GameKit.Dependencies.dll">
+                <PackagePath>lib%(RecursiveDir)</PackagePath>
+                <Visible>false</Visible>
+                <BuildAction>Content</BuildAction>
+            </_PackageFiles>
+        </ItemGroup>
+    </Target>
 </Project>
