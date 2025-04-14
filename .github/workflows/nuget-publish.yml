@@ -13,6 +13,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.x
+      - name: Add NuGet package source
+        uses: deitry/add-nuget-source-action@v2.0.0
+        with:
+          url: https://nuget.bepinex.dev/v3/index.json
       - name: Restore dependencies
         run: dotnet restore
       - name: Pack
