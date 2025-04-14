@@ -35,7 +35,7 @@
 
     <Target Name="PackTaskDependencies" BeforeTargets="GenerateNuspec">
         <ItemGroup>
-            <_PackageFiles Include="bin\$(Configuration)\*\FishNet*.dll;bin\$(Configuration)\*\Mono*.dll;bin\$(Configuration)\*\GameKit.Dependencies.dll">
+            <_PackageFiles Include="bin\$(Configuration)\*\FishNet*.dll;bin\$(Configuration)\*\Mono*.dll;bin\$(Configuration)\*\GameKit.Dependencies.dll;bin($Configuration)\*\Unity.CompilationPipeline.Common.dll">
                 <PackagePath>lib%(RecursiveDir)</PackagePath>
                 <Visible>false</Visible>
                 <BuildAction>Content</BuildAction>
