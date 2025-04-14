@@ -17,11 +17,6 @@
           <Pack>true</Pack>
           <PackagePath>build/</PackagePath>
         </Content>
-        <Content
-            Include="$(OutputPath)/*.dll;$(OutputPath)/*.pdb"
-            Pack="true"
-            PackagePath="build/"
-        />
     </ItemGroup>
 
     <ItemGroup>
