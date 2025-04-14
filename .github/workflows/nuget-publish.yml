@@ -1,0 +1,21 @@
+name: Publish NuGet package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.x
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Pack
+        run: dotnet pack -c Release --no-restore
+      - name: Push
+        run: dotnet nuget push ./FishNet.CodeGenerator.MSBuild/bin/Release/*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source ${{secrets.NUGET_SOURCE}}
