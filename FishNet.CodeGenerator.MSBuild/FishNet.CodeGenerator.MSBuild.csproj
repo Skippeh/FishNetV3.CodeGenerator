@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="FishNet.CodeGenerator.MSBuild.props">
+        <Content Include="FishNetV3.CodeGenerator.MSBuild.props">
           <Pack>true</Pack>
           <PackagePath>build/</PackagePath>
         </Content>

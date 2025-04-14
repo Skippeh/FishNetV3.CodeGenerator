@@ -16,7 +16,7 @@
     
     <Import Project="$(ProjectDir)DevVars.targets" />
     
-    <Import Project="..\FishNet.CodeGenerator.MSBuild\FishNet.CodeGenerator.MSBuild.props" />
+    <Import Project="..\FishNet.CodeGenerator.MSBuild\FishNetV3.CodeGenerator.MSBuild.props" />
     
     <PropertyGroup>
         <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\netstandard2.1\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>

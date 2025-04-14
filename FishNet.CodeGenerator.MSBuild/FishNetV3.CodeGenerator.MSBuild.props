@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <_FishNetCodeGeneratorPropsFile>$(MSBuildThisFile)</_FishNetCodeGeneratorPropsFile>
-        <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\lib\netstandard2.1\$(MSBuildThisFileName).dll</_FishNetCodeGenerator_TaskAssembly>
+        <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\lib\netstandard2.1\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
     </PropertyGroup>
     
     <UsingTask TaskName="GenerateCodeTask" AssemblyFile="$(_FishNetCodeGenerator_TaskAssembly)" />
