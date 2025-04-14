@@ -17,7 +17,6 @@ public class TestNetworkBehaviour : NetworkBehaviour
     [ServerRpc]
     private void ServerRpc(string message)
     {
-        
     }
 
     [ObserversRpc]
