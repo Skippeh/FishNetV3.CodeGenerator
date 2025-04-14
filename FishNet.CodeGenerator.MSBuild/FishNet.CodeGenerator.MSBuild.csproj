@@ -19,7 +19,7 @@
           <Pack>true</Pack>
           <PackagePath>build/</PackagePath>
         </Content>
-        <None Include="$(SolutionDir)LICENSE.txt" Pack="true" PackagePath="LICENSE.txt" />
+        <None Include="../LICENSE.txt" Pack="true" PackagePath="" />
     </ItemGroup>
 
     <ItemGroup>
