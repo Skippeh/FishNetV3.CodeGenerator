@@ -68,10 +68,10 @@ public class GenerateCodeTask : Task
                 Log.LogWarning(null, null, null, diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Line, diagnostic.Column, diagnostic.MessageData);
         }
 
-        //return result.Diagnostics.TrueForAll(d => d.DiagnosticType != DiagnosticType.Error);
+        return result.Diagnostics.TrueForAll(d => d.DiagnosticType != DiagnosticType.Error);
 
-        Log.LogError("Error to avoid having to edit TestPlugin before every test");
-        return false;
+        //Log.LogError("Error to avoid having to edit TestPlugin before every test");
+        //return false;
     }
 
     private void LogMessage(string message)
