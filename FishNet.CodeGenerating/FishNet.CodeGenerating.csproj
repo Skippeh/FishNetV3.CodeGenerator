@@ -8,6 +8,7 @@
     <RestoreAdditionalProjectSources>
       $(RestoreAdditionalProjectSources);
       https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
