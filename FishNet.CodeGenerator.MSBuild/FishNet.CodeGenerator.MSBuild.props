@@ -6,7 +6,7 @@
     
     <UsingTask TaskName="GenerateCodeTask" AssemblyFile="$(_FishNetCodeGenerator_TaskAssembly)" />
     
-    <Target Name="GenerateFishNetCode" AfterTargets="Build">
+    <Target Name="GenerateFishNetCode" BeforeTargets="CopyFilesToOutputDirectory">
         <Error Condition="'$(UsingMicrosoftNETSdk)' != 'true'" Text="The FishNet.CodeGenerator.MSBuild package can only be used with SDK-style projects." />
         
         <PropertyGroup>
