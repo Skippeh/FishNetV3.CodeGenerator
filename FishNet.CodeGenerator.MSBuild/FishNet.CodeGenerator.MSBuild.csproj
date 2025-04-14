@@ -13,6 +13,7 @@
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
         <PackageId>FishNetV3.CodeGenerator.MSBuild</PackageId>
+        <RepositoryUrl>https://github.com/Skippeh/FishNetV3.CodeGenerator</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>
