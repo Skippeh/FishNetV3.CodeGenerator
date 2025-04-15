@@ -1,8 +1,11 @@
-﻿using FishNet.Connection;
+﻿using System;
+using System.Numerics;
+using FishNet.Connection;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Serializing;
 using FishNet.Transporting;
+using ScheduleOne.ItemFramework;
 
 namespace TestPlugin;
 
@@ -18,7 +21,7 @@ public class TestNetworkBehaviour : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void ServerRpc(string message)
+    private void ServerRpc(ItemInstance itemInstance, UnityEngine.Vector3 vec3, UnityEngine.Quaternion quaternion, Guid? guid)
     {
     }
 
