@@ -46,6 +46,10 @@ namespace FishNet.CodeGenerating.Processing
             List<TypeDefinition> typeDefs = new List<TypeDefinition>();
             do
             {
+                // Break if part of another assembly
+                if (copyTypeDef.Module.Assembly.Name != Session.Module.Assembly.Name)
+                    break;
+                
                 if (!HasClassBeenProcessed(copyTypeDef))
                 {
                     //Disallow nested network behaviours.

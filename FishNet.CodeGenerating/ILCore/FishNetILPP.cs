@@ -396,6 +396,10 @@ namespace FishNet.CodeGenerating.ILCore
                         //Class is NB.
                         if (copyTd.FullName == session.GetClass<NetworkBehaviourHelper>().FullName)
                             break;
+                        
+                        // Class is part of another assembly
+                        if (copyTd.Module.Assembly.Name.Name != session.Module.Assembly.Name.Name)
+                            break;
 
                         inheritedTds.Add(copyTd);
                         copyTd = copyTd.GetNextBaseTypeDefinition(session);
