@@ -28,7 +28,8 @@ public class TestNetworkBehaviour : NetworkBehaviour
     }
 
     [ObserversRpc]
-    private void ObserversRpc(float value)
+    [TargetRpc]
+    private void ObserversRpc(NetworkConnection conn, float value)
     {
     }
 
@@ -50,6 +51,17 @@ public class DerivedTest : TestNetworkBehaviour
 }
 
 public class DerivedFromOtherAssemblyTest : MoneyManager
+{
+    [SyncVar]
+    private float FloatVar;
+    
+    [ServerRpc]
+    private void TestRpc()
+    {
+    }
+}
+
+public class DeriveFromOtherAssemblyTest2 : BuildableItem
 {
     [SyncVar]
     private float FloatVar;
