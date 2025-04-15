@@ -8,7 +8,7 @@
         <DebugType>embedded</DebugType>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.0.0-beta.5</Version>
+        <Version>1.0.0-beta.6</Version>
         <Description>Code generation for FishNet V3 that works outside of the unity editor. Made specifically for modding games that use Fishnet V3. NOT ASSOCIATED WITH OFFICIAL FISHNET PROJECT MADE BY FIRST GEAR GAMES.</Description>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
