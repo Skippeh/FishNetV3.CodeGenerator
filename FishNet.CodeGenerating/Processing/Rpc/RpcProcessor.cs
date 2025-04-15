@@ -1,4 +1,5 @@
-﻿using FishNet.CodeGenerating.Extension;
+﻿using System;
+using FishNet.CodeGenerating.Extension;
 using FishNet.CodeGenerating.Helping;
 using FishNet.CodeGenerating.Helping.Extension;
 using FishNet.Connection;
@@ -77,6 +78,12 @@ namespace FishNet.CodeGenerating.Processing.Rpc
 
             PredictionProcessor pp = base.GetClass<PredictionProcessor>();
             uint rpcCount = GetRpcCountInParents(typeDef) + pp.GetPredictionCountInParents(typeDef) + pp.GetPredictionCount(typeDef);
+            uint externalAssembliesCount = GetNumInheritedExternalAssemblies(typeDef);
+            rpcCount += externalAssembliesCount;
+            
+            //Console.WriteLine($"{typeDef.Name} rpcCount: {rpcCount - externalAssembliesCount}");
+            //Console.WriteLine($"{typeDef.Name} externalAssembliesCount: {externalAssembliesCount}");
+            
             //All createdRpcs for typeDef.
             List<CreatedRpc> typeDefCeatedRpcs = new List<CreatedRpc>();
             List<MethodDefinition> methodDefs = typeDef.Methods.ToList();
@@ -123,6 +130,7 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                         if (cr.LogicMethodDef != null && cr.LogicMethodDef.IsVirtual)
                             _virtualRpcs.Add((cr.LogicMethodDef, md));
 
+                        //Console.WriteLine($"{cr.OriginalMethodDef.DeclaringType.Name}.{cr.OriginalMethodDef.Name} rpcCount: {rpcCount}");
                         rpcCount++;
                     }
                     else
@@ -181,6 +189,30 @@ namespace FishNet.CodeGenerating.Processing.Rpc
                     count += GetRpcCount(typeDef);
 
             } while (typeDef != null);
+
+            return count;
+        }
+
+        internal uint GetNumInheritedExternalAssemblies(TypeDefinition typeDef)
+        {
+            uint count = 0;
+            HashSet<string> foundNames = [];
+            var copyDef = typeDef;
+            var typeDefAssemblyName = typeDef.Module.Assembly.Name.Name;
+
+            do
+            {
+                copyDef = copyDef.GetNextBaseClassToProcess(Session);
+
+                if (copyDef == null)
+                    continue;
+
+                var copyTypeDefAssemblyName = copyDef.Module.Assembly.Name.Name;
+
+                if (copyTypeDefAssemblyName != typeDefAssemblyName && foundNames.Add(copyTypeDefAssemblyName))
+                    ++count;
+
+            } while (copyDef != null);
 
             return count;
         }
