@@ -45,3 +45,5 @@ If you need to manually specify more directories you can add the following to yo
     <FishNetCodeGenAssemblySearchPaths Include="C:\Path\To\Dependencies" />
 </ItemGroup>
 ```
+
+Manually defined search paths have the highest priority (resolving assemblies will search through these directories first).

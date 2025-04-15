@@ -42,11 +42,18 @@ public class GenerateCodeTask : Task
 
         if (AssemblySearchPaths != null)
         {
-            referenceFileDirectories.AddRange(
-                AssemblySearchPaths
-                    .Select(x => x.GetMetadata("FullPath"))
-                    .Where(x => x != null)
-            );
+            foreach (var item in AssemblySearchPaths)
+            {
+                string? directory = item.GetMetadata("FullPath");
+
+                if (directory == null)
+                    continue;
+
+                directory = Path.GetFullPath(Path.GetDirectoryName(directory));
+
+                if (!referenceFileDirectories.Contains(directory))
+                    referenceFileDirectories.Insert(0, directory);
+            }
         }
 
         var result = AssemblyCodeGenerator.ProcessFile(inputFile.FullName, inputFile.FullName, new ProcessOptions
