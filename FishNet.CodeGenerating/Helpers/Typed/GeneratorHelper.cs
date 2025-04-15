@@ -42,7 +42,7 @@ namespace FishNet.CodeGenerating.Helping
             //Invalid typeDef.
             if (objectTd == null)
             {
-                base.LogError($"{errorPrefix}{objectTd.FullName} could not be resolved.", null);
+                base.LogError($"{errorPrefix}{objectTr.FullName} could not be resolved.", null);
                 return SerializerType.Invalid;
             }
             //Intentionally excluded.

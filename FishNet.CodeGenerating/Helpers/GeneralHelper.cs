@@ -657,6 +657,12 @@ namespace FishNet.CodeGenerating.Helping
         /// <returns></returns>
         public bool HasNonSerializableAttribute(TypeDefinition typeDef)
         {
+            if (typeDef == null)
+                return false;
+            
+            if (typeDef.CustomAttributes == null)
+                return false;
+            
             foreach (CustomAttribute customAttribute in typeDef.CustomAttributes)
             {
                 if (customAttribute.AttributeType.FullName == NonSerialized_Attribute_FullName)
