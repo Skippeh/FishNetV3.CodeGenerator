@@ -1,27 +1,29 @@
 ﻿using System;
-using System.Numerics;
 using FishNet.Connection;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Serializing;
 using FishNet.Transporting;
+using ScheduleOne.EntityFramework;
 using ScheduleOne.ItemFramework;
+using ScheduleOne.Money;
+using UnityEngine;
+
+#pragma warning disable CS0169 // Field is never used
 
 namespace TestPlugin;
 
 public class TestNetworkBehaviour : NetworkBehaviour
 {
     [SyncVar(Channel = Channel.Reliable, ReadPermissions = ReadPermission.Observers, WritePermissions = WritePermission.ServerOnly, OnChange = nameof(FloatVarChanged))]
-#pragma warning disable CS0169 // Field is never used
     private float FloatVar;
-#pragma warning restore CS0169 // Field is never used
 
     private void FloatVarChanged(float oldValue, float newValue, bool asServer)
     {
     }
 
     [ServerRpc]
-    private void ServerRpc(ItemInstance itemInstance, UnityEngine.Vector3 vec3, UnityEngine.Quaternion quaternion, Guid? guid)
+    private void ServerRpc(ItemInstance itemInstance, Vector3 vec3, Quaternion quaternion, Guid? guid)
     {
     }
 
@@ -32,6 +34,28 @@ public class TestNetworkBehaviour : NetworkBehaviour
 
     [TargetRpc]
     private void TargetRpc(NetworkConnection conn, CustomData data)
+    {
+    }
+}
+
+public class DerivedTest : TestNetworkBehaviour
+{
+    [SyncVar]
+    private float FloatVar;
+    
+    [ServerRpc]
+    private void TestRpc()
+    {
+    }
+}
+
+public class DerivedFromOtherAssemblyTest : MoneyManager
+{
+    [SyncVar]
+    private float FloatVar;
+    
+    [ServerRpc]
+    private void TestRpc()
     {
     }
 }
