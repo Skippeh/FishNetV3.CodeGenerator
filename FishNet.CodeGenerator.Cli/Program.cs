@@ -50,18 +50,21 @@ public static class Program
             return (int)ProcessResult.UnknownError;
         }
 
-        if (result.Diagnostics.All(d => d.DiagnosticType != DiagnosticType.Error))
-            return (int)ProcessResult.Ok;
+        bool hasErrors = false;
 
         foreach (var diagnostic in result.Diagnostics)
         {
+            Console.Error.WriteLine(
+                $"[{diagnostic.DiagnosticType}] {diagnostic.File}:{diagnostic.Line}:{diagnostic.Column}: {diagnostic.MessageData}"
+            );
+
             if (diagnostic.DiagnosticType == DiagnosticType.Error)
-            {
-                Console.Error.WriteLine(
-                    $"[{diagnostic.DiagnosticType}] {diagnostic.File}:{diagnostic.Line}:{diagnostic.Column}: {diagnostic.MessageData}");
-            }
+                hasErrors = true;
         }
 
-        return (int)ProcessResult.HasDiagnosticErrors;
+        if (hasErrors)
+            return (int)ProcessResult.HasDiagnosticErrors;
+
+        return (int)ProcessResult.Ok;
     }
 }
