@@ -46,8 +46,8 @@ public static class Program
 
         if (result == null)
         {
-            Console.Error.WriteLine("Failed to process (Process() returned null)");
-            return (int)ProcessResult.UnknownError;
+            Console.Error.WriteLine("No FishNet related code found in assembly, skipping.");
+            return (int)ProcessResult.Ok;
         }
 
         bool hasErrors = false;
