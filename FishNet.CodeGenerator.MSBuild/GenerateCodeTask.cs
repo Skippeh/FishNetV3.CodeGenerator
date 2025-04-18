@@ -63,8 +63,8 @@ public class GenerateCodeTask : Task
 
         if (result == null)
         {
-            Log.LogError("Unknown error occurred while processing assembly file");
-            return false;
+            Log.LogWarning("No FishNet related code found in assembly, skipping.");
+            return true;
         }
 
         foreach (var diagnostic in result.Diagnostics)
