@@ -1,10 +1,9 @@
 <Project>
     <PropertyGroup>
         <_FishNetCodeGeneratorPropsFile>$(MSBuildThisFile)</_FishNetCodeGeneratorPropsFile>
-        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'netstandard2.1'">$(MSBuildThisFileDirectory)..\lib\netstandard2.1\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
-        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'net472'">$(MSBuildThisFileDirectory)..\lib\net472\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
-        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'net481'">$(MSBuildThisFileDirectory)..\lib\net481\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
-        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'net462'">$(MSBuildThisFileDirectory)..\lib\net462\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
+        <_FishNetCodeGeneratorTargetFramework Condition="'$(MSBuildRuntimeType' == 'Core'">netstandard2.1</_FishNetCodeGeneratorTargetFramework>
+        <_FishNetCodeGeneratorTargetFramework Condition="'$(MSBuildRuntimeType' != 'Core'">net462</_FishNetCodeGeneratorTargetFramework>
+        <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\lib\$(_FishNetCodeGeneratorTargetFramework)\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
     </PropertyGroup>
     
     <UsingTask TaskName="GenerateCodeTask" AssemblyFile="$(_FishNetCodeGenerator_TaskAssembly)" />
