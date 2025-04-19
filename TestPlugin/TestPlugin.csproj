@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.1;net481;net472</TargetFrameworks>
+        <TargetFrameworks>netstandard2.1;net481;net472;net462</TargetFrameworks>
         <AssemblyName>TestPlugin</AssemblyName>
         <Product>Test plugin</Product>
         <Version>1.0.0</Version>
@@ -19,7 +19,10 @@
     <Import Project="..\FishNet.CodeGenerator.MSBuild\FishNetV3.CodeGenerator.MSBuild.props" />
     
     <PropertyGroup>
-        <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\netstandard2.1\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
+        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'netstandard2.1'">$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\netstandard2.1\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
+        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'net462'">$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\net462\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
+        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'net472'">$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\net472\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
+        <_FishNetCodeGenerator_TaskAssembly Condition="'$(TargetFramework)' == 'net481'">$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\net481\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
     </PropertyGroup>
 
     <ItemGroup>
