@@ -55,12 +55,12 @@ namespace FishNet.CodeGenerator
                 }
 
                 using var file = File.Create(outputPath);
-                file.Write(result.InMemoryAssembly.PeData);
+                file.Write(result.InMemoryAssembly.PeData, 0, result.InMemoryAssembly.PeData.Length);
 
                 if (result.InMemoryAssembly.PdbData is { Length: > 0 })
                 {
                     using var pdbFile = File.Create(Path.ChangeExtension(outputPath, "pdb"));
-                    pdbFile.Write(result.InMemoryAssembly.PdbData);
+                    pdbFile.Write(result.InMemoryAssembly.PdbData, 0, result.InMemoryAssembly.PdbData.Length);
                 }
                 
                 return result;
@@ -114,9 +114,9 @@ namespace FishNet.CodeGenerator
         private static byte[] ReadFileBytes(string filePath)
         {
             using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            Memory<byte> readBuffer = new Memory<byte>(new byte[fileStream.Length]);
-            int numBytesRead = fileStream.Read(readBuffer.Span);
-            byte[] fileBytes = readBuffer.Span.Slice(0, numBytesRead).ToArray();
+            var readBuffer = new byte[fileStream.Length];
+            int numBytesRead = fileStream.Read(readBuffer, 0, readBuffer.Length);
+            byte[] fileBytes = readBuffer.Take(numBytesRead).ToArray();
             return fileBytes;
         }
     }
