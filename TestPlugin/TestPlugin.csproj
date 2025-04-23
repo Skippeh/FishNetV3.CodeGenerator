@@ -54,7 +54,7 @@
         <Reference Include="$(ManagedDir)\FishNet.Runtime.dll">
             <Private>false</Private>
         </Reference>
-        <Reference Include="$(ManagerDir)\Unity*.dll">
+        <Reference Include="$(ManagedDir)\Unity*.dll">
             <Private>false</Private>
         </Reference>
     </ItemGroup>
