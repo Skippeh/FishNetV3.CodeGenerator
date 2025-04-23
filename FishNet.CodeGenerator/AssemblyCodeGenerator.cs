@@ -42,6 +42,12 @@ namespace FishNet.CodeGenerator
 
             options = options with { AssemblySearchPaths = processor.AssemblySearchPaths };
             GeneratorAssemblyResolver.SetProcessOptions(options);
+            
+            Console.WriteLine($"Using {processor.AssemblySearchPaths.Count} assembly search paths:");
+            foreach (string path in processor.AssemblySearchPaths)
+            {
+                System.Diagnostics.Debug.WriteLine($"- {path}");
+            }
 
             if (processor.WillProcess(compiledAssembly))
             {
