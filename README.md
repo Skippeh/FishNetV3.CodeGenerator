@@ -47,3 +47,15 @@ If you need to manually specify more directories you can add the following to yo
 ```
 
 Manually defined search paths have the highest priority (resolving assemblies will search through these directories first).
+
+### Known issues
+
+Compiling in Visual Studio might fail. If that happens try adding the following to your csproj file:
+
+```xml
+<PropertyGroup>
+    <FishNetCodeGenDontIncludeReferencePaths>true</FishNetCodeGenDontIncludeReferencePaths>
+    <FishNetCodeGenAssemblySearchPaths Include="C:\Path\To\Dependencies" />
+    <!-- repeat for other directories if necessary -->
+</PropertyGroup>
+```
