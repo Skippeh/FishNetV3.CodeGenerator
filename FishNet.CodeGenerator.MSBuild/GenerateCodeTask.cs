@@ -12,6 +12,7 @@ public class GenerateCodeTask : Task
     [Required] public ITaskItem IntermediateOutputFilePath { get; set; } = null!;
     public ITaskItem[]? AssemblySearchPaths { get; set; }
     [Required] public ITaskItem[] ReferencePath { get; set; } = null!;
+    public ITaskItem? DontIncludeReferencePaths { get; set; }
 
     public override bool Execute()
     {
@@ -20,23 +21,28 @@ public class GenerateCodeTask : Task
         );
 
         List<string> referenceFileDirectories = new(capacity: ReferencePath.Length);
+        bool dontIncludeReferencePaths =
+            DontIncludeReferencePaths?.GetMetadataBool("Identity") ?? false;
 
-        foreach (var refItem in ReferencePath)
+        if (!dontIncludeReferencePaths)
         {
-            string? fileName = refItem.GetMetadata("FullPath");
-            bool externallyResolved = refItem.GetMetadataBool("ExternallyResolved") ?? false;
-
-            string? directory = Path.GetDirectoryName(fileName);
-
-            if (directory == null)
-                continue;
-
-            if (!referenceFileDirectories.Contains(directory))
+            foreach (var refItem in ReferencePath)
             {
-                if (externallyResolved)
-                    referenceFileDirectories.Add(directory);
-                else
-                    referenceFileDirectories.Insert(0, directory);
+                string? fileName = refItem.GetMetadata("FullPath");
+                bool externallyResolved = refItem.GetMetadataBool("ExternallyResolved") ?? false;
+
+                string? directory = Path.GetDirectoryName(fileName);
+
+                if (directory == null)
+                    continue;
+
+                if (!referenceFileDirectories.Contains(directory))
+                {
+                    if (externallyResolved)
+                        referenceFileDirectories.Add(directory);
+                    else
+                        referenceFileDirectories.Insert(0, directory);
+                }
             }
         }
 
@@ -49,11 +55,16 @@ public class GenerateCodeTask : Task
                 if (directory == null)
                     continue;
 
-                directory = Path.GetFullPath(Path.GetDirectoryName(directory));
+                directory = GetFullPathOfDirectory(directory);
 
                 if (!referenceFileDirectories.Contains(directory))
                     referenceFileDirectories.Insert(0, directory);
             }
+        }
+        else if (dontIncludeReferencePaths)
+        {
+            Log.LogError("Cannot generate code without reference paths. Either manually provide them or unset the FishNetCodeGenDontIncludeReferencePaths property.");
+            return false;
         }
 
         var result = AssemblyCodeGenerator.ProcessFile(inputFile.FullName, inputFile.FullName, new ProcessOptions
@@ -76,6 +87,17 @@ public class GenerateCodeTask : Task
         }
 
         return result.Diagnostics.TrueForAll(d => d.DiagnosticType != DiagnosticType.Error);
+    }
+
+    private string GetFullPathOfDirectory(string directory)
+    {
+        if (File.Exists(directory))
+            directory = Path.GetDirectoryName(directory)!;
+            
+        if (Path.IsPathRooted(directory))
+            return directory;
+
+        return Path.GetFullPath(directory);
     }
 
     private void LogMessage(string message)

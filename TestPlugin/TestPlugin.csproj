@@ -22,6 +22,7 @@
         <_TargetFramework Condition="'$(MSBuildRuntimeType' == 'Core'">netstandard2.1</_TargetFramework>
         <_TargetFramework Condition="'$(MSBuildRuntimeType' != 'Core'">net462</_TargetFramework>
         <_FishNetCodeGenerator_TaskAssembly>$(MSBuildThisFileDirectory)..\FishNet.CodeGenerator.MSBuild\bin\$(Configuration)\$(_TargetFramework)\FishNet.CodeGenerator.MSBuild.dll</_FishNetCodeGenerator_TaskAssembly>
+        <!--<FishNetCodeGenDontIncludeReferencePaths>true</FishNetCodeGenDontIncludeReferencePaths>-->
     </PropertyGroup>
 
     <ItemGroup>

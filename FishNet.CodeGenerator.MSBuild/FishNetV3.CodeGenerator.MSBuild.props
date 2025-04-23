@@ -22,6 +22,7 @@
                 IntermediateOutputFilePath="$(IntermediateOutputPath)$(AssemblyName).$(Extension)"
                 AssemblySearchPaths="@(FishNetCodeGenAssemblySearchPaths)"
                 ReferencePath="@(ReferencePath)"
+                DontIncludeReferencePaths="$(FishNetCodeGenDontIncludeReferencePaths)"
         />
     </Target>
     
