@@ -55,7 +55,10 @@ Compiling in Visual Studio might fail. If that happens try adding the following 
 ```xml
 <PropertyGroup>
     <FishNetCodeGenDontIncludeReferencePaths>true</FishNetCodeGenDontIncludeReferencePaths>
+</PropertyGroup>
+
+<ItemGroup>
     <FishNetCodeGenAssemblySearchPaths Include="C:\Path\To\Dependencies" />
     <!-- repeat for other directories if necessary -->
-</PropertyGroup>
+</ItemGroup>
 ```
