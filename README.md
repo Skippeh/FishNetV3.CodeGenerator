@@ -62,3 +62,21 @@ Compiling in Visual Studio might fail. If that happens try adding the following 
     <!-- repeat for other directories if necessary -->
 </ItemGroup>
 ```
+
+FishNet's initialize methods do not get invoked when the assembly is loaded with a mod loader (such as BepInEx or MelonLoader). A workaround for this is to invoke those methods manually when the mod initializes. Here is a code snippet you can use to do that:
+
+```cs
+// Call this when your plugin is being initialized
+private void InitFishNet()
+{
+    // FishNet normally uses RuntimeInitializeOnLoadMethod to invoke these methods, but those do not get invoked when using a mod loader.
+    // So we invoke them manually here.
+    var types = Assembly.GetExecutingAssembly().GetExportedTypes().Where(t => t.Namespace == "FishNet.Serializing.Generated");
+
+    foreach (var type in types)
+    {
+        MethodInfo method = type.GetMethod("InitializeOnce", BindingFlags.NonPublic | BindingFlags.Static);
+        method.Invoke(null, []);
+    }
+}
+```
